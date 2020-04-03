@@ -1,0 +1,12 @@
+# builds
+.flatpak-builder
+build
+.vscode
+
+# Python
+*.pyc
+__pycache__
+
+
+/*.xz
+/*.flatpak

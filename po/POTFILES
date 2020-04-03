@@ -1,0 +1,6 @@
+data/com.github.inercia.k3dv.desktop.in
+data/com.github.inercia.k3dv.appdata.xml.in
+data/com.github.inercia.k3dv.gschema.xml
+src/menu.ui
+src/main.py
+src/window.py

@@ -1,0 +1,28 @@
+language: python
+
+python:
+  - "3.6"
+
+before_install:
+  - export PATH=~/bin:$PATH
+  - make ci/setup
+
+script:
+  - make ci/build
+
+# generate all the artifacts that will be published by the "deploy"
+before_deploy:
+  - make ci/release
+
+# ... and then publish those artifacts, docs, push images, etc.
+deploy:
+  # publish to GitHub releases
+  # make ci/release should have left everything ready
+  - provider: releases
+    on:
+      all_branches: true
+    api_key:
+      secure: "Z0YefkiJfYJV3jj/oJ2xmJge+1LXyLSVBQAOZJ9eNLAr4KIYCfF1pwMaJk48l+Iy0zNQs7zM076tL6xSXmTXvmgcCA210HujstplnzElrGLHfmIgqLP6OB1pQ60NW937UL/dRGjNnIFWNZsY1ifb17D/Vc9liyGKbx8bzmtx07buMOKIqawhkZ+Lw9NRk++I3OvKYFfXmcpNIFzacQOMz+mD+aNpFJyTTF7NXgINWQNYTs+PHAeUjjZYMI2UbNB1h4kMSpX0GriHJ7b2cSbl8Vz35K4zAwmpC5/qT60EMbUOujg3OOsHa7dYIJJzVD7UvS/5wNrz37PYq/n62B8E87oZQarBwN0Frq3eJ6VJdRB6YzN0TyYgaqWmm3EUWLL1gYy7SZawa4emaMJhQGd+72Fgsyjk/0Cymx3LUntPLwd/Lm9kgnDSqWRvvjbnSHyXCUFXDl+JWUeBEvVzRLvsWgwXNkQucjwxa7v2rTrkYLQaHoQi1OhfdKJt4rz3/8KMefzcAi0011C5HCNZvUd40qmyulhvFz633T8MMCNqZeiG7M5BqMqboALWSbDRq4u91USU7dI+jzT2FVhhviTApCCH1sNLnnP4mkAZKyYvCdnfYjRFjUm+APu3lj0JZhzeaRFjIkqkPogW+UX8fJDO+D3zIED/3T0ORdsRFgA4nHk="
+    file_glob: true
+    file: *.flatpak
+    skip_cleanup: true

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="k3dv">
+	<schema id="com.github.inercia.k3dv" path="/com/github/inercia/k3dv/">
+
+		<!-- ******************************************************************************** -->
+		<!-- * Preferences -->
+		<!-- ******************************************************************************** -->
+
+		<!-- ******************************** -->
+		<!-- * Preferences: General -->
+		<!-- ******************************** -->
+		<key type="s" name="docker-endpoint">
+			<default>'unix:///var/run/docker.sock'</default>
+			<summary>Docker endpoint</summary>
+			<description>Docker endpoint, like unix:///var/run/docker.sock or tcp:192.168.1.10:1111</description>
+		</key>
+		<key type="s" name="kubeconfig">
+			<default>'$HOME/.kube/config'</default>
+			<summary>Kubeconfig</summary>
+			<description>Path to the kubeconfig file</description>
+		</key>
+		<key type="b" name="start-on-login">
+			<default>false</default>
+			<summary>Start on login</summary>
+			<description>Start the application on login</description>
+		</key>
+
+		<!-- ******************************** -->
+		<!-- * Preferences: Hooks -->
+		<!-- ******************************** -->
+		<key type="s" name="cluster-create-hook">
+			<default>''</default>
+			<summary>Startup hook</summary>
+			<description>Path to a cluster creation hook script</description>
+		</key>
+		<key type="s" name="cluster-destroy-hook">
+			<default>''</default>
+			<summary>Startup hook</summary>
+			<description>Path to a cluster destruction hook script</description>
+		</key>
+
+		<!-- ******************************** -->
+		<!-- * Preferences: registry -->
+		<!-- ******************************** -->
+		<key type="s" name="registry-mode">
+			<default>''</default>
+			<summary>Registry mode</summary>
+			<description>Local Docker registry mode.</description>
+		</key>
+		<key type="s" name="registry-address">
+			<default>'registry.localhost:5000'</default>
+			<summary>Registry address</summary>
+			<description>Registry address and port</description>
+		</key>
+		<key type="s" name="registry-volume">
+			<default>'k3d-registry'</default>
+			<summary>Registry volume</summary>
+			<description>Registry volume for storing images</description>
+		</key>
+
+		<!-- ******************************** -->
+		<!-- * Preferences: k3s -->
+		<!-- ******************************** -->
+		<key type="s" name="k3d-image">
+			<default>''</default>
+			<summary>k3d image</summary>
+			<description>Alternative k3d image</description>
+		</key>
+		<key type="s" name="k3s-args">
+			<default>''</default>
+			<summary>k3s args</summary>
+			<description>k3s server arguments</description>
+		</key>
+
+		<!-- ******************************************************************************** -->
+		<!-- * Shortcuts -->
+		<!-- ******************************************************************************** -->
+		<key type="s" name="key-new-cluster">
+			<default>'&lt;Control&gt;&lt;Super&gt;K'</default>
+			<summary>New cluster</summary>
+			<description>Key bindings for creating new cluster</description>
+		</key>
+		<key type="s" name="key-new-cluster-defaults">
+			<default>'&lt;Control&gt;&lt;Super&gt;&lt;Alt&gt;K'</default>
+			<summary>New cluster with defaults</summary>
+			<description>Key bindings for creating new cluster with defaults</description>
+		</key>
+		<key type="s" name="key-new-cluster-cycle">
+			<default>'&lt;Control&gt;&lt;Super&gt;&lt;Shift&gt;K'</default>
+			<summary>New cluster with defaults (destroying random old)</summary>
+			<description>Key bindings for creating new cluster with defaults, destroying a random existing cluster</description>
+		</key>
+		<key type="s" name="key-curr-cluster-dashboard">
+			<default>'&lt;Control&gt;&lt;Super&gt;&lt;Shift&gt;D'</default>
+			<summary>Open dashboard for current cluster</summary>
+			<description>Open dashboard for current cluster</description>
+		</key>
+		<key type="s" name="key-curr-cluster-destroy">
+			<default>'&lt;Control&gt;&lt;Super&gt;&lt;Shift&gt;Q'</default>
+			<summary>Destroy current cluster</summary>
+			<description>Destroy current cluster</description>
+		</key>
+
+		<!-- ******************************************************************************** -->
+		<!-- * Last: new cluster -->
+		<!-- ******************************************************************************** -->
+
+		<!-- ******************************** -->
+		<!-- * Last: new cluster: general -->
+		<!-- ******************************** -->
+		<key type="i" name="last-num-workers">
+			<default>0</default>
+		</key>
+		<key type="b" name="last-enable-registry">
+			<default>true</default>
+		</key>
+		<key type="s" name="last-api-address">
+			<default>':0'</default>
+		</key>
+		<key type="b" name="last-install-dashboard">
+			<default>false</default>
+		</key>
+
+		<!-- ******************************** -->
+		<!-- * Last: new cluster: registry -->
+		<!-- ******************************** -->
+		<key type="b" name="last-registry-enabled">
+			<default>true</default>
+		</key>
+
+	</schema>
+</schemalist>
