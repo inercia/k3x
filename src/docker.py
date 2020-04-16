@@ -27,7 +27,14 @@ import logging
 import os
 from typing import Optional
 
-from .config import ApplicationSettings, SETTINGS_KEY_DOCKER_ENDPOINT
+from .config import ApplicationSettings, SETTINGS_KEY_DOCKER_ENDPOINT, DEFAULT_INVALID_CHARS_DOCKER_NAME
+
+
+def is_valid_docker_name(name: str) -> bool:
+    """
+    Returns True if the given name is a valid Docker container/volume name
+    """
+    return not any([x in name for x in DEFAULT_INVALID_CHARS_DOCKER_NAME])
 
 
 class DockerController(object):

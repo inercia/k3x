@@ -1,23 +1,39 @@
+# kernel-style V=1 build verbosity
+ifeq ("$(origin V)", "command line")
+  BUILD_VERBOSE = $(V)
+endif
 
-PROJECT_ROOT     = $(shell pwd)
+ifeq ($(BUILD_VERBOSE),1)
+  Q =
+else
+  Q = @
+endif
 
-APP_TITLE        = k3dv
-APP_ID           = com.github.inercia.$(APP_TITLE)
+PROJECT_ROOT             = $(shell pwd)
 
-RUNTIME          = org.gnome.Platform
+APP_TITLE                = k3x
+APP_ID                   = com.github.inercia.$(APP_TITLE)
 
-FLATPAK_MANIFEST = $(PROJECT_ROOT)/com.github.inercia.k3dv.json
-BUILD_ROOT       = $(PROJECT_ROOT)/.flatpak-builder
+APP_SRC_PY               = $(wildcard src/*.py)
+APP_SRC_MESONS           = $(wildcard */meson.build) $(wildcard */*/meson.build)
+APP_SRC_DATA             = $(wildcard data/*.in) $(wildcard data/*.xml)
 
-BUNDLE          ?= $(APP_TITLE).flatpak
+FLATPAK_SDK              = org.gnome.Sdk
+FLATPAK_RUNTIME          = org.gnome.Platform
+FLATPAK_RUNTIME_VERSION  = 3.34
 
-STATE_DIR        = $(BUILD_ROOT)
-CCACHE_DIR       = $(BUILD_ROOT)/ccache
-BUILD_DIR        = $(BUILD_ROOT)/build/staging
-REPO_DIR         = $(BUILD_ROOT)/repo
-DIST_DIR         = $(PROJECT_ROOT)/dist
+FLATPAK_MANIFEST         = $(PROJECT_ROOT)/com.github.inercia.k3x.json
+BUILD_ROOT               = $(PROJECT_ROOT)/.flatpak-builder
 
-FLATPAK_RUN_ARGS = \
+FLATPAK_BUNDLE          ?= $(PROJECT_ROOT)/$(APP_ID).flatpak
+
+STATE_DIR                = $(BUILD_ROOT)
+CCACHE_DIR               = $(BUILD_ROOT)/ccache
+BUILD_DIR               ?= $(BUILD_ROOT)/build/staging
+RELEASE_DIR             ?= $(BUILD_ROOT)/build/release
+FLATPAK_REPO_DIR        ?= $(BUILD_ROOT)/repo
+
+FLATPAK_RUN_ARGS         = \
 	--nofilesystem=host \
 	--env=NOCONFIGURE=1 \
 	--env=LANG=en_US.UTF-8 \
@@ -31,7 +47,7 @@ FLATPAK_RUN_ARGS = \
 	--filesystem=$(PROJECT_ROOT) \
 	--filesystem=$(BUILD_DIR)
 
-FLATPAK_RUN_SHARES = \
+FLATPAK_RUN_SHARES       = \
 	--share=ipc \
 	--socket=x11 \
 	--share=network \
@@ -45,11 +61,20 @@ FLATPAK_RUN_SHARES = \
 	--filesystem=home \
 	--filesystem=/run/docker.sock
 
-FLATPAK_BUILDER_ARGS = \
-	--arch=x86_64 --ccache --force-clean --state-dir $(STATE_DIR) --disable-updates
+FLATPAK_BUILDER_ARGS        = \
+	--arch=x86_64             \
+	--ccache                  \
+	--force-clean             \
+	--state-dir $(STATE_DIR)  \
+	--disable-updates
 
 FLATPAK_BUILD_ARGS = \
 	$(FLATPAK_RUN_ARGS) $(FLATPAK_RUN_SHARES) $(BUILD_DIR)
+
+TAG ?=
+
+NINJA_TARGET ?=
+
 
 ##############################
 # Help                       #
@@ -62,6 +87,8 @@ CYN=\033[1;36m
 BLD=\033[1m
 END=\033[0m
 
+.DEFAULT_GOAL := help
+
 .PHONY: help
 help: ## Show this help screen
 	@echo 'Usage: make <OPTIONS> ... <TARGETS>'
@@ -71,94 +98,130 @@ help: ## Show this help screen
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##############################
-# Development                #
+# Development
 ##############################
-
 ##@ Development
 
-.PHONY: build
-build: $(BUILD_DIR)  ## Build the application
-	@printf "$(CYN)>>> $(GRN)Downloading dependencies...$(END)\n"
-	flatpak-builder $(FLATPAK_BUILDER_ARGS) --download-only --stop-at=k3dv \
+$(BUILD_DIR):
+	@printf "$(CYN)>>> $(GRN)Creating build dir $(BUILD_DIR) ...$(END)\n"
+	$(Q)mkdir -p $(BUILD_DIR)
+	$(Q)-flatpak build-init $(BUILD_DIR) $(APP_ID) $(FLATPAK_SDK) $(FLATPAK_RUNTIME) $(FLATPAK_RUNTIME_VERSION)
+
+$(BUILD_DIR)/build.ninja: $(BUILD_DIR) $(FLATPAK_MANIFEST) $(APP_SRC_MESONS)
+	@printf "$(CYN)>>> $(GRN)Downloading dependencies (in build_dir=$(BUILD_DIR))...$(END)\n"
+	$(Q)flatpak-builder $(FLATPAK_BUILDER_ARGS) --download-only --stop-at=k3x \
 		$(BUILD_DIR) $(FLATPAK_MANIFEST)
 
-	@printf "$(CYN)>>> $(GRN)Building dependencies...$(END)\n"
-	flatpak-builder $(FLATPAK_BUILDER_ARGS) --disable-download --stop-at=k3dv \
+	@printf "$(CYN)>>> $(GRN)Building dependencies (in build_dir=$(BUILD_DIR))...$(END)\n"
+	$(Q)flatpak-builder $(FLATPAK_BUILDER_ARGS) --disable-download --stop-at=k3x \
 		$(BUILD_DIR) $(FLATPAK_MANIFEST)
 
-	@printf "$(CYN)>>> $(GRN)Building with meson...$(END)\n"
-	flatpak build --build-dir=$(BUILD_DIR) $(FLATPAK_BUILD_ARGS) \
-		meson --prefix=/app $(PROJECT_ROOT)
+	@printf "$(CYN)>>> $(GRN)Building with meson (in build_dir=$(BUILD_DIR))...$(END)\n"
+	$(Q)flatpak build --build-dir=$(BUILD_DIR) $(FLATPAK_BUILD_ARGS) meson $(PROJECT_ROOT) . --prefix=/app
 
-	@printf "$(CYN)>>> $(GRN)Running ninja...$(END)\n"
-	@cd $(BUILD_DIR) && \
-		flatpak build --build-dir=$(BUILD_DIR) $(FLATPAK_BUILD_ARGS) ninja && \
-		echo ">>> Running ninja install" && \
-		flatpak build --build-dir=$(BUILD_DIR) $(FLATPAK_BUILD_ARGS) ninja install
+build: $(BUILD_DIR)/build.ninja ## Build
 
-.PHONY: clean
-clean: ## Remove the build dir
-	rm -rf $(BUILD_DIR) $(APP_TITLE).flatpak
+##############################
+# Clean
+##############################
+##@ Development: clean
 
 .PHONY: clean
+clean: ## Clean build products
+	@printf "$(CYN)>>> $(GRN)Doing a quick clean-up...$(END)\n"
+	$(Q)rm -rf $(BUILD_DIR) $(RELEASE_DIR) $(FLATPAK_BUNDLE)
+
+.PHONY: distclean
 distclean: ## Clean-up everything
-	rm -rf .flatpak-builder
+	@printf "$(CYN)>>> $(GRN)Cleaning everything...$(END)\n"
+	$(Q)rm -rf $(BUILD_ROOT) $(FLATPAK_BUNDLE)
 
- $(BUILD_DIR):
-	@printf "$(CYN)>>> $(GRN)Creating build dir...$(END)\n"
-	mkdir -p $(BUILD_DIR)
-	-flatpak build-init $(BUILD_DIR) $(APP_ID) org.gnome.Sdk $(RUNTIME) 3.34
+##############################
+# Checks and tests
+##############################
+
+##@ Development: checks and tests
+
+.PHONY: clean
+check: pep8 ## check code style
+
+.PHONY: pep8
+pep8:
+	$(Q)find src -name \*.py -exec pycodestyle --ignore=E402,E501,E722 {} +
 
 ##############################
 # Run
 ##############################
-
 ##@ Local dev loop
 
 .PHONY: run
-run: build ## Run the application locally
-	@printf "$(CYN)>>> $(GRN)Running k3dv in a sandbox...$(END)\n"
-	@flatpak-builder $(FLATPAK_RUN_ARGS) $(FLATPAK_RUN_SHARES) \
-		--run $(BUILD_DIR) $(FLATPAK_MANIFEST) \
-		k3dv
+run: $(BUILD_DIR)/build.ninja ## Run the application locally
+	$(Q)cd $(BUILD_DIR) && \
+		printf "$(CYN)>>> $(GRN)Running ninja (in build_dir=$(BUILD_DIR))...$(END)\n" && \
+		flatpak build --build-dir=$(BUILD_DIR) $(FLATPAK_BUILD_ARGS) ninja
 
+	$(Q)cd $(BUILD_DIR) && \
+		printf "$(CYN)>>> $(GRN)Running ninja install (in build_dir=$(BUILD_DIR))...$(END)\n" && \
+		flatpak build --build-dir=$(BUILD_DIR) $(FLATPAK_BUILD_ARGS) ninja install
+
+	@printf "$(CYN)>>> $(GRN)Running k3x in a sandbox...$(END)\n"
+	$(Q)flatpak-builder $(FLATPAK_RUN_ARGS) $(FLATPAK_RUN_SHARES) --run $(BUILD_DIR) $(FLATPAK_MANIFEST) \
+		k3x
 
 ##############################
 # Packaging
 ##############################
-
 ##@ Packaging and releasing
 
 .PHONY: package
-package: $(BUNDLE)    ## Export the Flatpack bundle
+package: $(FLATPAK_BUNDLE)    ## Export the Flatpack bundle
 
-$(BUNDLE): build
-	@rm -rf $(REPO_DIR)
+$(FLATPAK_BUNDLE): $(FLATPAK_MANIFEST) $(APP_SRC_MESONS) $(APP_SRC_PY) $(APP_SRC_DATA)
+	@rm -rf $(RELEASE_DIR)
 
-	@printf "$(CYN)>>> $(GRN)Finishing the build...$(END)\n"
-	flatpak build-finish $(FLATPAK_BUILD_ARGS)
+	@printf "$(CYN)>>> $(GRN)Building dependencies (in build_dir=$(RELEASE_DIR)...$(END)\n"
+	$(Q)flatpak-builder $(FLATPAK_BUILDER_ARGS) $(RELEASE_DIR) $(FLATPAK_MANIFEST)
 
-	@printf "$(CYN)>>> $(GRN)Exporting bundle: repo_dir=$(REPO_DIR) build_dir=$(BUILD_DIR)$(END)\n"
-	flatpak build-export $(REPO_DIR) $(BUILD_DIR)
+	@printf "$(CYN)>>> $(GRN)Exporting bundle to repo_dir=$(FLATPAK_REPO_DIR) (build_dir=$(RELEASE_DIR)$(END)\n"
+	$(Q)rm -rf $(FLATPAK_REPO_DIR)
+	$(Q)flatpak build-export --arch=x86_64 $(FLATPAK_REPO_DIR) $(RELEASE_DIR)
 
-	@printf "$(CYN)>>> $(GRN)Buidlding bundle: repo_dir=$(REPO_DIR) bundle=$(BUNDLE)$(END)\n"
-	flatpak build-bundle $(REPO_DIR) $(BUNDLE) $(APP_ID)
+	@printf "$(CYN)>>> $(GRN)Building bundle from repo_dir=$(FLATPAK_REPO_DIR) -> bundle=$(FLATPAK_BUNDLE)$(END)\n"
+	$(Q)flatpak build-bundle --arch=x86_64 $(FLATPAK_REPO_DIR) $(FLATPAK_BUNDLE) $(APP_ID) master
+	@printf "$(CYN)>>> $(GRN)Bundle available at $(FLATPAK_BUNDLE)$(END)\n"
 
-	@printf "$(CYN)>>> $(GRN)Bundle available at $(BUNDLE)$(END)\n"
+##############################
+# releases
+##############################
+
+release:  ## Adds a new TAG and pushes it to the origin for forcing a new release
+	$(Q)[ -n "$(TAG)" ] || { printf "$(CYN)>>> $(RED)No TAG provided$(END)\n" ; exit 1 ; }
+	@printf "$(CYN)>>> $(GRN)Adding TAG=$(TAG$)$(END)\n"
+	$(Q)git co master
+	$(Q)git tag -d $(TAG) 2>/dev/null || /bin/true
+	$(Q)git tag -a $(TAG) -m "New version $(TAG)" || { printf "$(CYN)>>> $(RED)Failed to add TAG=$(TAG) $(END)\n" ; exit 1 ; }
+	@printf "$(CYN)>>> $(GRN)Pushing tags $(TAG$)$(END)\n"
+	$(Q)git push --tags || { printf "$(CYN)>>> $(RED)Failed to push new tag $(TAG) to origin$(END)\n" ; exit 1 ; }
 
 ##############################
 # CI
 ##############################
 
 ci/setup:
-	#	@printf "$(CYN)>>> $(GRN)Installing flatpak utils...$(END)\n"
-	#	sudo add-apt-repository ppa:alexlarsson/flatpak -y
-	#	sudo apt-get update -q
-	#	sudo apt-get install -y flatpak flatpak-builder elfutils
+	@printf "$(CYN)>>> $(GRN)Installing flatpak utils...$(END)\n"
+	sudo add-apt-repository ppa:alexlarsson/flatpak -y
+	sudo apt-get update -q
+	sudo apt-get install -y flatpak flatpak-builder elfutils
 
 	@printf "$(CYN)>>> $(GRN)Adding flatpak remote...$(END)\n"
-	flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-	flatpak install -y flathub $(RUNTIME)
+	flatpak --user remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+	flatpak --user install -y flathub $(FLATPAK_RUNTIME)/x86_64/$(FLATPAK_RUNTIME_VERSION)
+	flatpak --user install -y flathub $(FLATPAK_SDK)/x86_64/$(FLATPAK_RUNTIME_VERSION)
+
+	@printf "$(CYN)>>> $(GRN)Installing pep8...$(END)\n"
+	sudo apt-get -y install python3-pip
+	sudo pip3 install pycodestyle
+
 
 ci/build: build
 

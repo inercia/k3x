@@ -41,7 +41,7 @@ from .config import ApplicationSettings
 from .config import APP_ID, APP_TITLE, DEFAULT_LOG_LEVEL
 from .docker import DockerController
 from .menu import K3dvMenu
-from .k3d import K3dController
+from .k3d_controller import K3dController
 from .keybindings import Keybindings
 from .utils_ui import show_notification
 
@@ -54,7 +54,9 @@ hdlr.setFormatter(fmt)
 
 class Indicator(object):
 
-    def __init__(self):
+    def __init__(self, version):
+        self._version = version
+
         icon = ApplicationSettings.prepare_icon()
         if not icon:
             raise Exception("no icon found")
@@ -80,8 +82,8 @@ class Indicator(object):
 
         logging.debug("[MAIN] Creating menu...")
         self._menu = K3dvMenu(controller=self._controller,
-                              settings=self._settings,
-                              docker=self._docker)
+                              docker=self._docker,
+                              version=self._version)
         self._indicator.set_menu(self._menu)
         self._menu.connect("quit", self.on_quit)
 
@@ -130,11 +132,9 @@ class Indicator(object):
 
 
 def main(version: str):
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-
     Gdk.threads_init()
 
-    _indicator = Indicator()  # NOTE: assign for keeping the object alive
+    _indicator = Indicator(version=version)  # NOTE: assign for keeping the object alive
 
     Gtk.Settings.get_default().set_property("gtk-icon-theme-name", "elementary")
 

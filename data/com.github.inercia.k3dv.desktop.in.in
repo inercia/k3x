@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=k3d Manager
-Exec=k3dv
-Terminal=false
-Type=Application
-Categories=GTK;
-StartupNotify=true
-Icon=@icon@
-

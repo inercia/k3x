@@ -24,21 +24,32 @@
 
 import logging
 import os
+import socket
 
 from gi.repository import Granite, Gtk, Gdk
 
-from .config import APP_TITLE
+from .config import (APP_ID,
+                     APP_TITLE)
+from .config import ApplicationSettings
+from .config import (DEFAULT_AUTOSTART_ENTRY_FILE,
+                     DEFAULT_PREFS_WIDTH,
+                     DEFAULT_PREFS_HEIGHT)
 from .config import (SETTINGS_KEY_DOCKER_ENDPOINT,
                      SETTINGS_KEY_KUBECONFIG,
                      SETTINGS_KEY_START_ON_LOGIN,
                      SETTINGS_KEY_REG_ADDRESS,
                      SETTINGS_KEY_REG_VOL,
-                     SETTINGS_KEY_REG_MODE)
+                     SETTINGS_KEY_REG_MODE,
+                     SETTINGS_KEY_CREATE_HOOK,
+                     SETTINGS_KEY_DESTROY_HOOK,
+                     SETTINGS_KEY_K3D_IMAGE,
+                     SETTINGS_KEY_K3S_ARGS)
+from .docker import is_valid_docker_name
+from .utils import parse_registry, RegistryInvalidError
 from .utils_ui import (SettingsPage,
                        show_error_dialog,
                        show_warning_dialog)
 
-SETTINGS_REG_NONE = "No local registry"
 SETTINGS_REG_LOCAL = "Regular registry"
 SETTINGS_REG_CACHE = "Only pull-through cache"
 
@@ -47,18 +58,56 @@ SETTINGS_REG_CACHE = "Only pull-through cache"
 # Errors
 ###############################################################################
 
+
 class PreferencesError(Exception):
     """
     A configuration error
     """
-    pass
+
+    def __init__(self, setting, message):
+        self.setting = setting
+        self.message = message
 
 
 class PreferencesWarning(Exception):
     """
     A configuration warning
     """
-    pass
+
+    def __init__(self, setting, message):
+        self.setting = setting
+        self.message = message
+
+
+###############################################################################
+# Startup entry
+###############################################################################
+
+class K3dvStartupEntry(object):
+    contents = f"""
+[Desktop Entry]
+Name=k3d
+Exec=flatpak run --user {APP_ID}
+Terminal=false
+Type=Application
+Categories=System;
+StartupNotify=true
+X-GNOME-Autostart-enabled=true
+"""
+
+    def __init__(self):
+        super(K3dvStartupEntry, self).__init__()
+        self._filename = DEFAULT_AUTOSTART_ENTRY_FILE
+
+    def create(self):
+        logging.info(f"Creating/over-writting desktop entry file {self._filename}")
+        with open(self._filename, "w") as out:
+            out.write(self.contents)
+
+    def delete(self):
+        if os.path.exists(self._filename):
+            logging.info(f"Removing desktop entry file {self._filename}")
+            os.remove(self._filename)
 
 
 ###############################################################################
@@ -67,16 +116,17 @@ class PreferencesWarning(Exception):
 
 class PreferencesDialog(Gtk.Window):
 
-    def __init__(self, settings, docker):
+    def __init__(self, docker):
         super().__init__()
 
-        self.set_default_size(600, 450)
+        self.set_default_size(DEFAULT_PREFS_WIDTH, DEFAULT_PREFS_HEIGHT)
         self.set_resizable(False)
         self.set_border_width(10)
         self.set_gravity(Gdk.Gravity.CENTER)
         self.set_position(Gtk.WindowPosition.CENTER)
 
-        self._settings = settings
+        self._settings = ApplicationSettings(APP_ID)
+
         self._docker = docker
 
         self.view = PreferencesPanedView(settings=self._settings, docker=self._docker)
@@ -98,8 +148,7 @@ class PreferencesDialog(Gtk.Window):
         # add a "Defaults" button
         defaults_button = Gtk.Button(label="Defaults")
         defaults_button.connect("clicked", self.on_defaults_clicked)
-        defaults_button.get_style_context().add_class(
-            Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
+        defaults_button.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
         self.header.pack_start(defaults_button)
 
         # ... and a "Apply" button
@@ -108,18 +157,30 @@ class PreferencesDialog(Gtk.Window):
         apply_button.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
         self.header.pack_end(apply_button)
 
+    def show_all(self):
+        super(PreferencesDialog, self).show_all()
+        self._settings.delay()
+
     def on_apply_clicked(self, *args):
         """
         The user has pressed the "Apply" button
         """
         logging.info("Applying changes in preferences")
         try:
-            self.view.validate()
+            self.view.on_validate()
         except PreferencesError as e:
-            show_error_dialog(msg="Preferences validation error", explanation=f"{e}")
+            show_error_dialog(msg="Preferences validation error", explanation=f"\n\n{e.message}")
+            if e.setting is not None:
+                self._settings.reset(e.setting)
             return
         except PreferencesWarning as e:
-            show_warning_dialog(msg="Preferences warning", explanation=f"{e}")
+            show_warning_dialog(msg="Preferences warning", explanation=f"\n\n{e.message}")
+
+        try:
+            self.view.on_apply()
+        except Exception as e:
+            show_error_dialog(msg="Saving error", explanation=f"\n\n{e}")
+            return
 
         self._settings.apply()
         self.hide()
@@ -184,11 +245,17 @@ class PreferencesPanedView(Gtk.Paned):
         self.add(self.settings_sidebar)
         self.add(self.stack)
 
-    def validate(self):
-        self.general_preferences.validate()
-        self.registry_preferences.validate()
-        self.k3s_preferences.validate()
-        self.hooks_preferences.validate()
+    def on_validate(self):
+        self.general_preferences.on_validate()
+        self.registry_preferences.on_validate()
+        self.k3s_preferences.on_validate()
+        self.hooks_preferences.on_validate()
+
+    def on_apply(self):
+        self.general_preferences.on_apply()
+        self.registry_preferences.on_apply()
+        self.k3s_preferences.on_apply()
+        self.hooks_preferences.on_apply()
 
     def set_defaults(self):
         self.general_preferences.set_defaults()
@@ -227,13 +294,12 @@ class GeneralSettingsPage(SettingsPage):
             "~/.kube/config for having it automatically loaded by kubectl. "
             "It is important to note that this file WILL BE OVERWRITTEN. "
             "You should choose a different file if you are using some cloud providers "
-            " or cluster created with some other tools.")
+            "or cluster created with some other tools.")
         self.append_labeled_entry("Kubeconfig file:", self.kubeconfig_entry, SETTINGS_KEY_KUBECONFIG)
 
         # The docker entrypoint
         self.docker_endpoint_entry = Gtk.Entry()
         self.docker_endpoint_entry.props.hexpand = False
-        self.docker_endpoint_entry.props.halign = Gtk.Align.START
         self.docker_endpoint_entry.set_tooltip_text(
             "Docker endpoint, like unix:///var/run/docker.sock or "
             "tcp:192.168.1.10:1111")
@@ -241,10 +307,17 @@ class GeneralSettingsPage(SettingsPage):
 
         # Start on login
         self.start_login_checkbutton = Gtk.Switch()
-        self.start_login_checkbutton.props.halign = Gtk.Align.START
         self.start_login_checkbutton.set_tooltip_text(
             f"When enabled, {APP_TITLE} is started on login")
         self.append_labeled_entry("Start on login:", self.start_login_checkbutton, SETTINGS_KEY_START_ON_LOGIN)
+
+    def on_apply(self):
+        start_on_login = self._settings.get_boolean(SETTINGS_KEY_START_ON_LOGIN)
+        startup = K3dvStartupEntry()
+        if start_on_login:
+            startup.create()
+        else:
+            startup.delete()
 
 
 ###############################################################################
@@ -269,7 +342,6 @@ class RegistrySettingsPage(SettingsPage):
                          **kwargs)
 
         registry_mode = Gtk.ListStore(str)
-        registry_mode.append([SETTINGS_REG_NONE])
         registry_mode.append([SETTINGS_REG_LOCAL])
         registry_mode.append([SETTINGS_REG_CACHE])
 
@@ -278,39 +350,61 @@ class RegistrySettingsPage(SettingsPage):
         self.registry_mode.pack_start(renderer_text, True)
         self.registry_mode.add_attribute(renderer_text, "text", 0)
         self.registry_mode.set_tooltip_text(
-            "When used as a pull-through cache, the local Docker registry will act "
+            "When configured as a pull-through cache, the local Docker registry will act "
             "as a local cache of all the images that are downloaded "
-            "from the Docker Hub, but you cannot push to this registry.")
+            "from the Docker Hub, but you cannot 'push' to this registry. ")
         self.append_labeled_entry("Local registry mode:", self.registry_mode, SETTINGS_KEY_REG_MODE)
 
         # Registry hostname
         self.registry_name_entry = Gtk.Entry()
         self.registry_name_entry.hexpand = True
-        self.registry_name_entry.text = "preferences-system"
         self.append_labeled_entry("Registry Name/Port:", self.registry_name_entry, SETTINGS_KEY_REG_ADDRESS)
 
         # Registry volume
         self.registry_volume_entry = Gtk.Entry()
         self.registry_volume_entry.hexpand = True
-        self.registry_volume_entry.text = "preferences-system"
         self.registry_volume_entry.set_tooltip_text("Volume for saving the images.")
         self.append_labeled_entry("Volume for images:", self.registry_volume_entry, SETTINGS_KEY_REG_VOL)
 
-        def on_registry_mode_changed(combo):
-            tree_iter = combo.get_active_iter()
-            if tree_iter is not None:
-                model = combo.get_model()
-                new_mode = model[tree_iter][0]
-                if new_mode == SETTINGS_REG_NONE:
-                    logging.debug("[PREF] Disabling registry settings")
-                    self.registry_name_entry.set_sensitive(False)
-                    self.registry_volume_entry.set_sensitive(False)
-                else:
-                    logging.debug("[PREF] Enabling registry settings")
-                    self.registry_name_entry.set_sensitive(True)
-                    self.registry_volume_entry.set_sensitive(True)
+    def on_validate(self):
+        """
+        Validate the registry configuration
+        """
+        logging.debug("[PREFERENCES] Validating registry can be parsed...")
+        registry_address = self._settings.get_safe_string(SETTINGS_KEY_REG_ADDRESS)
+        try:
+            parsed_registry = parse_registry(registry_address)
+            if parsed_registry is None:
+                return
 
-        self.registry_mode.connect("changed", on_registry_mode_changed)
+            registry_name, registry_port = parsed_registry
+        except RegistryInvalidError as e:
+            raise PreferencesError(SETTINGS_KEY_REG_ADDRESS,
+                                   f"'<b><tt>{registry_address}</tt></b>' does not seem a valid registry."
+                                   "\n\n"
+                                   f"'{registry_address}' could not be parsed as a valid registry <tt>ADDRESS:PORT</tt>.")
+
+        logging.debug("[PREFERENCES] Validating registry volume...")
+        registry_volume = self._settings.get_safe_string(SETTINGS_KEY_REG_VOL)
+        if registry_volume is not None and len(registry_volume) > 0:
+            if not is_valid_docker_name(registry_volume):
+                raise PreferencesError(SETTINGS_KEY_REG_VOL,
+                                       f"'<b><tt>{registry_volume}</tt></b>' does not seem a valid volume name."
+                                       "\n\n"
+                                       f"'{registry_volume}' is not a valid Docker volume name.")
+
+        logging.debug("[PREFERENCES] Validating the registry address can be resolved...")
+        try:
+            socket.gethostbyname_ex(registry_name)
+        except Exception as e:
+            raise PreferencesError(SETTINGS_KEY_REG_ADDRESS,
+                                   f"DNS name '<b><tt>{registry_name}</tt></b>' cannot be resolved."
+                                   "\n\n"
+                                   f"'{registry_name}' cannot be resolved as a valid DNS name. That usually means that either\n\n"
+                                   f"1) your DNS server is not resolving this name, or"
+                                   "\n\n"
+                                   f"2) you must add a line like '<tt>127.0.0.1 {registry_name}</tt>' "
+                                   f"in your '<tt>/etc/hosts</tt>' file.")
 
 
 ###############################################################################
@@ -319,8 +413,8 @@ class RegistrySettingsPage(SettingsPage):
 
 class K3sSettingsPage(SettingsPage):
     _managed_settings = [
-        "k3d-image",
-        "k3s-args",
+        SETTINGS_KEY_K3D_IMAGE,
+        SETTINGS_KEY_K3S_ARGS,
     ]
 
     def __init__(self, **kwargs):
@@ -349,18 +443,16 @@ class K3sSettingsPage(SettingsPage):
         self.k3d_image.pack_start(renderer_text, True)
         self.k3d_image.add_attribute(renderer_text, "text", 0)
         self.k3d_image.hexpand = True
-        self.k3d_image.props.halign = Gtk.Align.START
         self.k3d_image.set_tooltip_text(
             "When specified, will use an alternative Docker image for the k3d nodes."
             "See the list of official k3s images at https://hub.docker.com/r/rancher/k3s/tags")
-        self.append_labeled_entry("k3d docker image:", self.k3d_image, "k3d-image")
+        self.append_labeled_entry("k3d docker image:", self.k3d_image, SETTINGS_KEY_K3D_IMAGE)
 
         self.k3s_args = Gtk.Entry()
         self.k3s_args.hexpand = True
-        self.k3s_args.props.halign = Gtk.Align.START
         self.k3s_args.set_tooltip_text(
             "When specified, will add these extra arguments to the k3s server.")
-        self.append_labeled_entry("k3s server args:", self.k3s_args, "k3s-args")
+        self.append_labeled_entry("k3s server args:", self.k3s_args, SETTINGS_KEY_K3S_ARGS)
 
 
 ###############################################################################
@@ -369,8 +461,8 @@ class K3sSettingsPage(SettingsPage):
 
 class HooksSettingsPage(SettingsPage):
     _managed_settings = [
-        "cluster-create-hook",
-        "cluster-destroy-hook",
+        SETTINGS_KEY_CREATE_HOOK,
+        SETTINGS_KEY_DESTROY_HOOK,
     ]
 
     def __init__(self, **kwargs):
@@ -384,19 +476,17 @@ class HooksSettingsPage(SettingsPage):
 
         self.cluster_create_hook = Gtk.Entry()
         self.cluster_create_hook.props.hexpand = False
-        self.cluster_create_hook.props.halign = Gtk.Align.START
         self.cluster_create_hook.set_tooltip_text(
             "A script that will be run right after creating a new cluster")
         self.cluster_create_hook.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "folder-open")
-        self.append_labeled_entry("After-creation script:", self.cluster_create_hook, "cluster-create-hook")
+        self.append_labeled_entry("After-creation script:", self.cluster_create_hook, SETTINGS_KEY_CREATE_HOOK)
 
         self.cluster_destroy_hook = Gtk.Entry()
         self.cluster_destroy_hook.props.hexpand = False
-        self.cluster_destroy_hook.props.halign = Gtk.Align.START
         self.cluster_destroy_hook.set_tooltip_text(
             "A script that will be run right after deleting a cluster")
         self.cluster_destroy_hook.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY, "folder-open")
-        self.append_labeled_entry("After-destruction script:", self.cluster_destroy_hook, "cluster-destroy-hook")
+        self.append_labeled_entry("After-destruction script:", self.cluster_destroy_hook, SETTINGS_KEY_DESTROY_HOOK)
 
         def select_file(entry, icon_pos, event, *args):
             dialog = Gtk.FileChooserDialog("Please choose a script",
@@ -431,17 +521,27 @@ class HooksSettingsPage(SettingsPage):
         self.cluster_create_hook.connect("icon-press", select_file)
         self.cluster_destroy_hook.connect("icon-press", select_file)
 
-    def validate(self):
+    def on_validate(self):
         """
         Validate all the settings, raising an exception if something is wrong
         """
-        create_hook = self.cluster_create_hook.get_text()
+        logging.debug("[PREFERENCES] Validating hooks...")
+        create_hook = self._settings.get_safe_string(SETTINGS_KEY_CREATE_HOOK)
         if len(create_hook) > 0:
             if not os.path.exists(create_hook):
-                raise PreferencesError(f"The create script\n\n {create_hook} \n\ndoes not exist or is not accessible")
+                raise PreferencesError("cluster_create_hook",
+                                       f"The create script:"
+                                       "\n\n"
+                                       f"<b><tt>{create_hook}</tt></b>"
+                                       "\n\n"
+                                       "does not exist or is not accessible.")
 
-        destroy_hook = self.cluster_destroy_hook.get_text()
+        destroy_hook = self._settings.get_safe_string(SETTINGS_KEY_DESTROY_HOOK)
         if len(destroy_hook) > 0:
             if not os.path.exists(destroy_hook):
-                raise PreferencesError(
-                    f"The destruction script\n\n {destroy_hook} \n\ndoes not exist or is not accessible")
+                raise PreferencesError("cluster_destroy_hook",
+                                       f"The destruction script:"
+                                       "\n\n"
+                                       f"<b><tt>{destroy_hook}</tt><b>"
+                                       "\n\n"
+                                       "does not exist or is not accessible.")

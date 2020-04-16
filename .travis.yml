@@ -1,4 +1,5 @@
 language: python
+sudo: true
 
 python:
   - "3.6"
@@ -17,12 +18,22 @@ before_deploy:
 # ... and then publish those artifacts, docs, push images, etc.
 deploy:
   # publish to GitHub releases
-  # make ci/release should have left everything ready
+  # (`make ci/release` should have left everything ready for publishing)
+  #
+  # for releasing a new version just do `make release TAG=v1.0`
+  #
+  # how to create this setup:
+  # - backup your current .travis.yml
+  # - create this block with `travis setup releases --force`
+  # - get the block from the newly generated file
+  #
   - provider: releases
     on:
-      all_branches: true
+      tags: true
+      branch: master
+      repo: inercia/k3x
     api_key:
-      secure: "Z0YefkiJfYJV3jj/oJ2xmJge+1LXyLSVBQAOZJ9eNLAr4KIYCfF1pwMaJk48l+Iy0zNQs7zM076tL6xSXmTXvmgcCA210HujstplnzElrGLHfmIgqLP6OB1pQ60NW937UL/dRGjNnIFWNZsY1ifb17D/Vc9liyGKbx8bzmtx07buMOKIqawhkZ+Lw9NRk++I3OvKYFfXmcpNIFzacQOMz+mD+aNpFJyTTF7NXgINWQNYTs+PHAeUjjZYMI2UbNB1h4kMSpX0GriHJ7b2cSbl8Vz35K4zAwmpC5/qT60EMbUOujg3OOsHa7dYIJJzVD7UvS/5wNrz37PYq/n62B8E87oZQarBwN0Frq3eJ6VJdRB6YzN0TyYgaqWmm3EUWLL1gYy7SZawa4emaMJhQGd+72Fgsyjk/0Cymx3LUntPLwd/Lm9kgnDSqWRvvjbnSHyXCUFXDl+JWUeBEvVzRLvsWgwXNkQucjwxa7v2rTrkYLQaHoQi1OhfdKJt4rz3/8KMefzcAi0011C5HCNZvUd40qmyulhvFz633T8MMCNqZeiG7M5BqMqboALWSbDRq4u91USU7dI+jzT2FVhhviTApCCH1sNLnnP4mkAZKyYvCdnfYjRFjUm+APu3lj0JZhzeaRFjIkqkPogW+UX8fJDO+D3zIED/3T0ORdsRFgA4nHk="
-    file_glob: true
-    file: *.flatpak
+      secure: mEt1w/QZV5/UTx7KJ3YJk45Gs7tuW28KoVn03o/T/ZhapJeUAG8GNKbq/pxqeCsyl3Q84+/0nmjmUHAI6fT8mV6A6070NP4Hw2j6GbeQkrKGEyabtW9IcnYXeAXMrAC0EoE9Q9jEynu7fjroUSmuklGW+f7sJajMpk1X0Q8sQotL6PT3WYhB3u+uAwpYtRn3kB6zN1/7EFjmQYNIyn8Jy8C6bM93b3n6+S/XD3V0u3zE4iDZ23BwQ3vVm5Ay2jzf+UPi/y7NpFKqekMUPOo96LiiSzeCj48J/BxUv2o3GyTshvzQfi5wKbjxI+8Rk4VR7Qq/RZHa7UNsdNTGtRVmkmIn5+ar+xJ7MsV+nQ9lTpJmpfxyL/u4EBxh8coXoyjdgILVeHK2oT8WQAknC8Yq3yUWpWjsiOdl5CTY5OT8FPF9/9iwlX2wM6N6fjGj6Wo9E+tQ5FU/lXGSPkIsBrKy4lY/edZJNOXS23t9s6KjcpPSwtd3NkmktTKmeo1LsdGHtBMwLtN8SzrmI04sxZzxY6yVr4nsi2CMDAo5u/1S7cGO889VVy0ZjHjnohaHo6K1tACtcoslv6S3yN7m4o3zIq9ni9bbwbVJU7KZ5MKyR98Ge0iGbQfpMlO17kGtShTcTBZQY7K0Ct91OkmQS52YhH+ciJNz5m6kYFyHP1fKKX0=
+    file: com.github.inercia.k3x.flatpak
     skip_cleanup: true
+

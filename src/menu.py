@@ -27,7 +27,8 @@ import logging
 from gi.repository import Gtk, GdkPixbuf, GObject
 
 from .cluster_view import ClusterDialog
-from .config import (APP_DESCRIPTION,
+from .config import (APP_ID,
+                     APP_DESCRIPTION,
                      APP_TITLE,
                      APP_MAIN_AUTHORS,
                      APP_DOCUMENTERS,
@@ -35,11 +36,13 @@ from .config import (APP_DESCRIPTION,
                      APP_COPYRIGHT,
                      APP_ARTISTS_CREDITS)
 from .config import ApplicationSettings
-from .k3d import K3dController, K3dError
+from .k3d import K3dError
+from .k3d_controller import K3dController
 from .preferences import PreferencesDialog
 from .utils import (emit_in_main_thread,
                     call_periodically,
-                    call_in_main_thread)
+                    call_in_main_thread,
+                    running_on_main_thread)
 from .utils_ui import show_notification, show_error_dialog
 
 # menu update interval (in milli-seconds)
@@ -63,14 +66,15 @@ class K3dvMenu(Gtk.Menu):
         "quit": (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, (int,)),
     }
 
-    def __init__(self, controller: K3dController, settings: ApplicationSettings, docker, **kwargs):
+    def __init__(self, controller: K3dController, docker, version, **kwargs):
         super().__init__(**kwargs)
 
-        self._settings = settings
+        self._settings = ApplicationSettings(APP_ID)
         self._docker = docker
         self._controller = controller
         self._shortcuts = None
         self._latest_clusters = dict()
+        self._version = version
 
         self._controller.connect("clusters-changed", self.on_clusters_changed)
         self._controller.connect("change-current-cluster", self.on_active_cluster_changed)
@@ -97,7 +101,7 @@ class K3dvMenu(Gtk.Menu):
 
         # create the preferences dialog but do not show it
         # this `inits` all the bindings that PreferencesDialog.__init__() creates
-        self._preferences = PreferencesDialog(settings=self._settings, docker=self._docker)
+        self._preferences = PreferencesDialog(docker=self._docker)
 
         self._controller.refresh()
         self.refresh()
@@ -116,7 +120,7 @@ class K3dvMenu(Gtk.Menu):
         # check if the clusters have changed
         current_clusters = self._controller.clusters
         if set(current_clusters.keys()) != set(self._latest_clusters.keys()) or forced:
-            logging.info("Clusters have changed: updating menu")
+            logging.info("[MENU] Clusters have changed: updating menu...")
             children = self.get_children_map()
 
             # remove all the entries in the menu
@@ -126,7 +130,7 @@ class K3dvMenu(Gtk.Menu):
                 if isinstance(child, Gtk.SeparatorMenuItem) and len(current_clusters) > 0:
                     continue
 
-                logging.info(f"[MENU] Menu item {label} is no longer valid: removing")
+                logging.info(f"[MENU] Menu item '{label}' is no longer valid: removing")
                 self.remove(child)
 
             if len(current_clusters) > 0:
@@ -164,7 +168,7 @@ class K3dvMenu(Gtk.Menu):
         Show the "New cluster" dialog
         """
         logging.info("[MENU] Creating new cluster...")
-        new_cluster = ClusterDialog(self._controller, settings=self._settings)
+        new_cluster = ClusterDialog(self._controller)
         new_cluster.show_all()
 
     def on_new_cluster_keystroke(self, *args):
@@ -176,17 +180,17 @@ class K3dvMenu(Gtk.Menu):
         # important: cluster_name is unicode: translate to str
         cluster = self._controller.get_cluster_by_name(str(cluster_name))
         if cluster:
-            new_cluster = ClusterDialog(self._controller, cluster=cluster, settings=self._settings)
+            new_cluster = ClusterDialog(self._controller, cluster=cluster)
             new_cluster.show_all()
 
     def on_new_cluster_defaults_clicked(self, *args):
         """
-        Show the "New cluster" dialog
+        Create a new cluster with defaults, with the "New cluster with defaults" menu entry
         """
         logging.info("[MENU] Creating new cluster with defaults")
-        new_cluster = ClusterDialog(self._controller, settings=self._settings)
+        new_cluster = ClusterDialog(self._controller)
         new_cluster.set_random_name()
-        new_cluster.create_async()
+        new_cluster.create_async(activate=True)
 
     def on_new_cluster_defaults_keystroke(self, *args):
         logging.info(f"[MENU] Creating new cluster with defaults (from keystroke): {args}")
@@ -201,7 +205,7 @@ class K3dvMenu(Gtk.Menu):
 
         if current is not None:
             logging.debug(f"[MENU] Will remove the current cluster: {current.name}")
-            old_cluster_dialog = ClusterDialog(self._controller, settings=self._settings, cluster=current)
+            old_cluster_dialog = ClusterDialog(self._controller, cluster=current)
             old_cluster_dialog.delete_async()
 
         # check if we can activate some other random cluster
@@ -217,9 +221,9 @@ class K3dvMenu(Gtk.Menu):
                 self._controller.active = to_activate_name
 
         # create a new cluster in the background
-        new_cluster = ClusterDialog(self._controller, settings=self._settings)
+        new_cluster = ClusterDialog(self._controller)
         new_cluster.set_random_name()
-        new_cluster.create_async()
+        new_cluster.create_async(activate=False)
 
     def on_new_cluster_cycle_keystroke(self, *args):
         logging.info(f"[MENU] Creating new cluster with defaults and recycling an old one (from keystroke): {args}")
@@ -229,8 +233,8 @@ class K3dvMenu(Gtk.Menu):
         active_cluster = self._controller.active
         try:
             url = active_cluster.dashboard_url
-            show_notification(f"Opening dashboard for {active_cluster} at {url}.",
-                              header=f"Opening dashboard for {active_cluster}")
+            active_cluster.show_notification(f"Opening dashboard for {active_cluster} at {url}.",
+                                             header=f"Opening dashboard for {active_cluster}")
             active_cluster.open_dashboard()
         except K3dError as e:
             show_error_dialog(f"When opening dashboard for {active_cluster}: {e}.")
@@ -252,7 +256,7 @@ class K3dvMenu(Gtk.Menu):
         """
         The "About" menu has been clicked.
         """
-        about = AboutDialog()
+        about = AboutDialog(version=self._version)
         about.show_all()
 
     def on_clusters_changed(self, *args):
@@ -267,12 +271,13 @@ class K3dvMenu(Gtk.Menu):
         Callback invoked when the active cluster changes
         """
         if cluster_name is not None:
-            show_notification(f"{cluster_name} is the new active cluster.",
-                              header=f"SWITCHED to {cluster_name}")
+            assert running_on_main_thread()
+            assert self._controller.active is not None
+            self._controller.active.show_notification(f"{cluster_name} is the new active cluster.",
+                                                      header=f"{cluster_name} ACTIVE")
         else:
             show_notification(f"No cluster is currently active.",
                               header=f"No cluster active")
-
 
     def on_quit_clicked(self, *args):
         """
@@ -318,7 +323,7 @@ class ShortcutsOverlay(Gtk.ShortcutsWindow):
         if not shortcuts:
             shortcuts = {}
 
-        section = Gtk.ShortcutsSection(max_height=10, title="k3dv", section_name="main")
+        section = Gtk.ShortcutsSection(max_height=10, title="k3x", section_name="main")
         section.set_orientation(Gtk.Orientation.VERTICAL)
         section.show()
 
@@ -344,7 +349,7 @@ class ShortcutsOverlay(Gtk.ShortcutsWindow):
 ###############################################################################
 
 class AboutDialog(Gtk.AboutDialog):
-    def __init__(self):
+    def __init__(self, version):
         Gtk.AboutDialog.__init__(self, modal=True)
         try:
             buttons = list(self.get_action_area())
@@ -364,17 +369,18 @@ class AboutDialog(Gtk.AboutDialog):
         self.set_comments(APP_DESCRIPTION)
         self.set_artists(APP_ARTISTS_CREDITS)
         self.set_wrap_license(True)
+        self.set_version(version)
         self.set_program_name(APP_TITLE)
 
         icon_path = ApplicationSettings.get_source_app_icon()
         if icon_path:
             logo_pixbuf = GdkPixbuf.Pixbuf.new_from_file(icon_path)
-            self.set_logo(logo_pixbuf)
+            self.set_logo(logo_pixbuf.scale_simple(200, 200, GdkPixbuf.InterpType.BILINEAR))
+        else:
+            self.set_logo(None)
 
-        # self.set_version(_guess_rmlint_version())
         self.set_authors(APP_MAIN_AUTHORS)
         self.set_documenters(APP_DOCUMENTERS)
         self.set_website(APP_URL)
         self.set_website_label('GitHub')
-        self.set_logo(None)
         self.show_all()

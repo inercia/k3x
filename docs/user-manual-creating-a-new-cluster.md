@@ -1,6 +1,6 @@
 # Creating a new cluster
 
-_NOTE: k3dv is changing rapidly, so some of the screenshots shown in this page
+_NOTE: k3x is changing rapidly, so some of the screenshots shown in this page
 could not correspond to the real state of the application._
  
 ## General settings
