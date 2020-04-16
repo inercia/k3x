@@ -31,12 +31,67 @@ from gi.repository import GdkPixbuf, Granite, Gtk, Notify as notify
 
 from .config import APP_TITLE
 from .config import ApplicationSettings
-from .utils import call_in_main_thread
+from .utils import call_in_main_thread, running_on_main_thread
 
 
 ###############################################################################
 # messages and notyfications
 ###############################################################################
+
+def show_notification(msg, header: str = None, icon: str = None,
+                      timeout: Optional[int] = None,
+                      action: Optional[Tuple[str, Callable]] = None,
+                      threaded: bool = True,
+                      notification=None):
+    """
+    Show a desktop notification
+    """
+    # see https://lazka.github.io/pgi-docs/#Notify-0.7
+    # maybe we could also use https://notify2.readthedocs.io/en/latest/
+
+    if not header:
+        header = APP_TITLE
+
+    icon_filename = None
+    if not icon:
+        icon_filename = ApplicationSettings.get_app_icon()
+
+    logging.info(msg)
+
+    def do_notify(n=None):
+        assert running_on_main_thread()
+
+        # send the notification from the main thread
+        if n is None:
+            n = notify.Notification.new(header, msg, icon)
+            n.set_app_name(APP_TITLE)
+
+            if icon_filename:
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file(icon_filename)
+                n.set_icon_from_pixbuf(pixbuf)
+
+            if timeout:
+                # Note that the timeout may be ignored by the server.
+                n.set_timeout(timeout)
+
+            if action:
+                action_str, action_callback = action
+                r = random.randrange(0, 10000)
+                n.add_action(f"{r}-{APP_TITLE}-id", action_str, action_callback, None)
+
+            n.show()
+        else:
+            logging.debug("[UI] Updating notification")
+            n.update(header, msg, icon)
+
+        if not threaded:  # important: do not return anything if invoked with `call_in_main_thread`
+            return n
+
+    if threaded:
+        call_in_main_thread(do_notify)
+        return None
+    else:
+        return do_notify(notification)
 
 
 def show_error_dialog(msg: str, explanation: str, icon: str = "dialog-error", ok_label: str = "Ok"):
@@ -44,7 +99,7 @@ def show_error_dialog(msg: str, explanation: str, icon: str = "dialog-error", ok
     Show a info/warning dialog, with just one OK button
     """
     error_diag = Granite.MessageDialog.with_image_from_icon_name(
-        msg, explanation, icon, Gtk.ButtonsType.OK_CANCEL)
+        msg, "\n\n" + explanation, icon, Gtk.ButtonsType.OK_CANCEL)
 
     button_ok = Gtk.Button(label=ok_label)
     error_diag.add_action_widget(button_ok, Gtk.ResponseType.OK)
@@ -63,50 +118,10 @@ def show_warning_dialog(msg: str, explanation: str):
     show_error_dialog(msg, explanation, icon="dialog-warning")
 
 
-def show_notification(msg, header: str = None, icon: str = None,
-                      timeout: Optional[int] = None,
-                      action: Optional[Tuple[str, Callable]] = None):
-    """
-    Show a desktop notification
-    """
-    # see https://lazka.github.io/pgi-docs/#Notify-0.7
-    # maybe we could also use https://notify2.readthedocs.io/en/latest/
-
-    if not header:
-        header = APP_TITLE
-
-    icon_filename = None
-    if not icon:
-        icon_filename = ApplicationSettings.get_app_icon()
-
-    logging.info(msg)
-
-    def _perform():
-        # send the notification from the main thread
-        n = notify.Notification.new(header, msg, icon)
-        n.set_app_name(APP_TITLE)
-        if icon_filename:
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file(icon_filename)
-            n.set_icon_from_pixbuf(pixbuf)
-
-        if timeout:
-            # Note that the timeout may be ignored by the server.
-            n.set_timeout(timeout)
-
-        if action:
-            action_str, action_callback = action
-            r = random.randrange(0, 10000)
-            n.add_action(f"{r}-{APP_TITLE}-id", action_str, action_callback, None)
-
-        n.show()
-
-    call_in_main_thread(_perform)
-
-
 def show_yes_no_dialog(msg: str, header: str, icon: str = "dialog-warning",
                        ok_label: str = "Ok", cancel_label: str = "Cancel",
                        window=None) -> str:
-    delete_diag = Granite.MessageDialog.with_image_from_icon_name(header, msg, icon, Gtk.ButtonsType.OK_CANCEL)
+    delete_diag = Granite.MessageDialog.with_image_from_icon_name(header, "\n\n" + msg, icon, Gtk.ButtonsType.OK_CANCEL)
 
     button_delete = Gtk.Button(label=ok_label)
     button_delete.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
@@ -160,8 +175,8 @@ def _link_gtk_switch_to_settings(settings, switch: Gtk.Switch, settings_id: str)
     if curr_value:
         switch.set_state(curr_value)
 
-    settings.connect(f"changed::{settings_id}", lambda s,
-                                                       k: switch.set_state(settings.get_boolean(settings_id)))
+    settings.connect(f"changed::{settings_id}",
+                     lambda s, k: switch.set_state(settings.get_boolean(settings_id)))
     switch.connect("state-set",
                    lambda _sw, _state: settings.set_boolean(settings_id, _state))
 
@@ -268,9 +283,16 @@ class SettingsPage(Granite.SimpleSettingsPage):
         label = Gtk.Label(text)
         label.props.hexpand = False
         label.props.halign = Gtk.Align.END
+        widget.props.halign = Gtk.Align.START
         self.append_entry(label, widget, setting=setting)
 
-    def validate(self):
+    def on_validate(self):
+        """
+        Validate all the settings, raising an exception if something is wrong
+        """
+        pass
+
+    def on_apply(self):
         """
         Validate all the settings, raising an exception if something is wrong
         """
@@ -283,4 +305,3 @@ class SettingsPage(Granite.SimpleSettingsPage):
         for setting in self._managed_settings:
             logging.debug(f"[UI] Resetting {setting} to default value")
             self._settings.reset(setting)
-

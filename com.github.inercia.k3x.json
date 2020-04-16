@@ -1,17 +1,22 @@
 {
-  "app-id": "com.github.inercia.k3dv",
+  "app-id": "com.github.inercia.k3x",
   "runtime": "org.gnome.Platform",
   "runtime-version": "3.34",
   "sdk": "org.gnome.Sdk",
-  "command": "k3dv",
+  "command": "k3x",
   "finish-args": [
-    "--filesystem=/run/docker.sock",
+    "--device=dri",
     "--share=ipc",
     "--socket=x11",
-    "--share=network",
     "--socket=wayland",
+    "--socket=ssh-auth",
+    "--share=network",
+    "--env=LD_LIBRARY_PATH=/app/lib:/app/lib/x86_64-linux-gnu:/lib64:/lib:/usr/lib64:/usr/lib:/usr/local/lib",
+    "--filesystem=/run/docker.sock",
     "--talk-name=org.freedesktop.Notifications",
     "--talk-name=org.kde.StatusNotifierWatcher",
+    "--talk-name=com.canonical.indicator.application",
+    "--talk-name=org.ayatana.indicator.application",
     "--talk-name=ca.desrt.dconf",
     "--filesystem=xdg-run/dconf",
     "--filesystem=~/.config/dconf:ro",
@@ -19,9 +24,12 @@
     "--filesystem=home:rw"
   ],
   "cleanup": [
+    "/bin/intltool-*",
+    "/etc/bash_completion.d",
     "/include",
     "/lib/pkgconfig",
     "/man",
+    "/share/aclocal",
     "/share/doc",
     "/share/gtk-doc",
     "/share/man",
@@ -80,7 +88,6 @@
         ]
       },
       "build-commands": [
-        "# install with pip3 install --prefix=${FLATPAK_DEST} ...",
         "pip3 install --prefix=${FLATPAK_DEST} xcffib xpybutil system_hotkey",
         "pip3 install --prefix=${FLATPAK_DEST} pyyaml",
         "pip3 install --prefix=${FLATPAK_DEST} docker"
@@ -102,13 +109,13 @@
       ]
     },
     {
-      "name": "k3dv",
+      "name": "k3x",
       "builddir": true,
       "buildsystem": "meson",
       "sources": [
         {
-          "type": "git",
-          "url": "file:///home/alvaro/Development/k3dv"
+          "type": "dir",
+          "path": "."
         }
       ]
     }

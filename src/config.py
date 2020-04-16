@@ -24,6 +24,7 @@
 
 import logging
 import os
+from pathlib import Path
 from shutil import copyfile
 
 from gi.repository import GLib, Gtk, Gio
@@ -34,10 +35,9 @@ CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 # Application info and credits
 ###############################################################################
 
-APP_ID = "com.github.inercia.k3dv"
+APP_TITLE = "k3x"
+APP_ID = f"com.github.inercia.{APP_TITLE}"
 APP_DESCRIPTION = "A k3d manager"
-APP_TITLE = "k3dv"
-APP_VERSION = "0.1"
 APP_MAIN_AUTHORS = [
     "Alvaro Saurin <alvaro.saurin@gmail.com>"
 ]
@@ -46,15 +46,15 @@ APP_MAIN_AUTHORS = [
 #       are confined in the flatpak container.
 APP_ICON_NAME = APP_ID
 APP_ICON_PATH = os.path.join(
-    '/app', 'share', 'icons', 'elementary', 'apps', 'scalable', APP_ID + ".svg")
+    '/app', 'share', 'icons', 'hicolor', '128x128', 'apps', APP_ID + ".svg")
 
 # ,prefix for all the environment variables we export
-APP_ENV_PREFIX = "K3DV"
+APP_ENV_PREFIX = "K3X"
 
 APP_DOCUMENTERS = [
     "Alvaro Saurin <alvaro.saurin@gmail.com>"
 ]
-APP_URL = "http://github.com/inercia/k3dv"
+APP_URL = "http://github.com/inercia/k3x"
 APP_COPYRIGHT = f"""
 Copyright (c) 2020 {APP_MAIN_AUTHORS}
 
@@ -100,6 +100,13 @@ SETTINGS_KEY_REG_VOL = "registry-volume"
 
 SETTINGS_KEY_REG_MODE = "registry-mode"
 
+SETTINGS_KEY_K3D_IMAGE = "k3d-image"
+
+SETTINGS_KEY_K3S_ARGS = "k3s-args"
+
+SETTINGS_KEY_CREATE_HOOK = "cluster-create-hook"
+
+SETTINGS_KEY_DESTROY_HOOK = "cluster-destroy-hook"
 
 ###############################################################################
 # settings
@@ -112,12 +119,6 @@ class ApplicationSettings(object):
 
     def __init__(self, schema):
         self._settings = Gio.Settings.new(schema)
-
-        # Changes the Settings object into ‘delay-apply’ mode. In this mode,
-        # changes to self are not immediately propagated to the backend, but kept
-        # locally until Settings.apply() is called.
-        # https://lazka.github.io/pgi-docs/Gio-2.0/classes/Settings.html#Gio.Settings.delay
-        self._settings.delay()
 
     def __getattr__(self, name):
         method = getattr(self._settings, name)
@@ -146,6 +147,15 @@ class ApplicationSettings(object):
         config_dir = GLib.get_user_config_dir()
         os.makedirs(config_dir, exist_ok=True)
         return config_dir
+
+    @staticmethod
+    def get_autostart_dir() -> str:
+        """
+        Return a directory for autostart entries
+        """
+        autostart_dir = os.path.join(str(Path.home()), ".config", "autostart")
+        os.makedirs(autostart_dir, exist_ok=True)
+        return autostart_dir
 
     @staticmethod
     def get_kube_dir() -> str:
@@ -213,7 +223,7 @@ class ApplicationSettings(object):
 
 
 ###############################################################################
-# Defaults
+# Default values
 ###############################################################################
 
 # the default kubeconfig file
@@ -239,3 +249,20 @@ DEFAULT_K3D_WAIT_TIME = 60
 
 # "k3d list" update interval (in milliseconds)
 DEFAULT_K3D_LIST_UPDATE_INTERVAL = 10000
+
+# the autostart desktop file
+DEFAULT_AUTOSTART_ENTRY_FILE = os.path.join(ApplicationSettings.get_autostart_dir(), "k3x.desktop")
+
+# port range for assigning random ports to the API server
+DEFAULT_API_SERVER_PORT_RANGE = (6500, 7500)
+
+# list of invalid chars in a Docker container or volume name
+DEFAULT_INVALID_CHARS_DOCKER_NAME = [",", " ", "/", "[", "]"]
+
+# preferences window size
+DEFAULT_PREFS_WIDTH = 650
+DEFAULT_PREFS_HEIGHT = 450
+
+# cluster view window size
+DEFAULT_CLUSTER_VIEW_WIDTH = 550
+DEFAULT_CLUSTER_VIEW_HEIGHT = 450

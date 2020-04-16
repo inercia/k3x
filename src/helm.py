@@ -158,7 +158,7 @@ class HelmChartKubernetesDashboard(HelmChart):
                              "enableInsecureLogin": "true",
                              "ingress.enabled": "true",
                              # https://docs.traefik.io/v1.7/configuration/backends/kubernetes/#annotations
-                             "ingress.annotations.kubernetes\.io/ingress\.class": "traefik",
+                             r"ingress.annotations.kubernetes\.io/ingress\.class": "traefik",
                          })
 
 

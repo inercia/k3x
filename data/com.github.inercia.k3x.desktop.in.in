@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=k3d
+Comment=k3x is a graphical user interface for k3d, making it trivial to have your own local Kubernetes cluster(s)
+Exec=k3x
+Terminal=false
+Type=Application
+Categories=System;
+StartupNotify=true
+Icon=@ICON@
+X-Flatpak=@APP_IP@
+X-Flatpak-Tags=stable;

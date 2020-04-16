@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<schemalist gettext-domain="k3dv">
-	<schema id="com.github.inercia.k3dv" path="/com/github/inercia/k3dv/">
+<schemalist gettext-domain="k3x">
+    <enum id="com.github.inercia.k3x.registry-mode">
+        <value nick="none" value="0"/>
+        <value nick="regular" value="1"/>
+        <value nick="cache" value="2"/>
+    </enum>
+	<schema id="com.github.inercia.k3x" path="/com/github/inercia/k3x/">
 
 		<!-- ******************************************************************************** -->
 		<!-- * Preferences -->
@@ -42,6 +47,7 @@
 		<!-- ******************************** -->
 		<!-- * Preferences: registry -->
 		<!-- ******************************** -->
+		<!-- TODO: we could use `enum="com.github.inercia.k3x.registry-mode"` instead of `type="s"` -->
 		<key type="s" name="registry-mode">
 			<default>''</default>
 			<summary>Registry mode</summary>
@@ -112,7 +118,7 @@
 			<default>0</default>
 		</key>
 		<key type="b" name="last-enable-registry">
-			<default>true</default>
+			<default>false</default>
 		</key>
 		<key type="s" name="last-api-address">
 			<default>':0'</default>

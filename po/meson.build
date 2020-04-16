@@ -1,1 +1,1 @@
-i18n.gettext('k3dv', preset: 'glib')
+i18n.gettext('k3x', preset: 'glib')

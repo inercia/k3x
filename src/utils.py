@@ -28,7 +28,7 @@ import os
 import random
 import subprocess
 import threading
-from typing import Iterator, Callable
+from typing import Iterator, Callable, Optional, Tuple, List, Dict
 
 from gi.repository import GLib, GObject
 
@@ -79,21 +79,34 @@ def run_command_stdout(*args, **kwargs) -> Iterator[str]:
                                             output="\n".join(p.stderr.readlines()))
 
 
-def run_hook_script(script, env):
+def run_hook_script(script: str, env: Dict[str, str]) -> None:
     """
     Run a hook script.
 
     NOTE: this must be called in a Thread for not blocking
     """
-    logging.info(f"[UTILS] Running script {script}")
+    hook_env = os.environ.copy()
+    hook_env.update(env)
+
+    logging.info(f"[UTILS] Running script '{script}' (env: {hook_env})")
+
+    if not os.access(script, os.X_OK):
+        raise ScriptError(f"{script} is not executable")
+
     try:
-        subprocess.run([script],
-                       capture_output=False,
-                       timeout=DEFAULT_SCRIPTS_TIMEOUT)
+        result = subprocess.run([script],
+                                shell=True,
+                                capture_output=False,
+                                timeout=DEFAULT_SCRIPTS_TIMEOUT,
+                                check=True,
+                                env=hook_env)
     except subprocess.CalledProcessError as e:
         raise ScriptError(e)
     except subprocess.TimeoutExpired as e:
         raise ScriptError(f"timeout {DEFAULT_SCRIPTS_TIMEOUT} expired when running {script}")
+    except Exception as e:
+        logging.warning(f"Error when running script {script}: {e}")
+        raise ScriptError(e)
 
 
 def running_on_main_thread() -> bool:
@@ -106,7 +119,7 @@ def running_on_main_thread() -> bool:
 ###############################################################################
 
 
-def is_port_in_use(port):
+def is_port_in_use(port: int) -> bool:
     """
     Check if a porty is in use.
     """
@@ -115,7 +128,7 @@ def is_port_in_use(port):
         return s.connect_ex(('localhost', port)) == 0
 
 
-def find_unused_port_in_range(start, end):
+def find_unused_port_in_range(start: int, end: int) -> Optional[int]:
     """
     Return a port that is not used in the given range
     """
@@ -134,10 +147,13 @@ def find_unused_port_in_range(start, end):
 # OS utils
 ###############################################################################
 
-def find_executable(executable, extra_paths=[]):
+def find_executable(executable: str, extra_paths: Optional[List[str]] = None) -> Optional[str]:
     """
     Find the path fo4r the executable provided, or None if it cannot be found.
     """
+    if extra_paths is None:
+        extra_paths = []
+
     paths = os.environ['PATH'].split(":")
     paths += extra_paths
 
@@ -149,23 +165,31 @@ def find_executable(executable, extra_paths=[]):
     return None
 
 
-def call_periodically(period, function):
+def call_periodically(period: int, function: Callable) -> None:
     """
     Call some function periodically
     """
     GLib.timeout_add(period, function)
 
 
-def call_in_main_thread(c: Callable, *args):
+def call_in_main_thread(c: Callable, *args) -> None:
+    """
+    Important: do not return any value in `c` or it will be called again... and again... and again...
+    """
     GObject.idle_add(c, *args)
 
 
-def truncate_file(f):
+def truncate_file(f: str) -> None:
+    d = os.path.dirname(f)
+    os.makedirs(d, exist_ok=True)
     with open(f, "w") as fp:
         fp.truncate(0)
 
 
-def emit_in_main_thread(sender: GObject, signal_name: str, *args):
+def emit_in_main_thread(sender: GObject, signal_name: str, *args) -> None:
+    """
+    Emit a signal in the main thread.
+    """
     call_in_main_thread(lambda: sender.emit(signal_name, *args))
 
 
@@ -173,10 +197,10 @@ def emit_in_main_thread(sender: GObject, signal_name: str, *args):
 # parsers
 ###############################################################################
 
-def parse_registry(registry: str):
+def parse_registry(registry: str) -> Optional[Tuple[str, int]]:
     # verify that the registry specification is valid (ie, something like "registry:5000")
     if len(registry) == 0:
-        return
+        return None
 
     try:
         registry_name, registry_port = registry.split(":")

@@ -1,7 +1,9 @@
 # Creating a new cluster
 
-_NOTE: k3dv is changing rapidly, so some of the screenshots shown in this page
+_NOTE: k3x is changing rapidly, so some of the screenshots shown in this page
 could not correspond to the real state of the application._
+
+<p>&nbsp;</p>
  
 ## General settings
 
@@ -42,5 +44,5 @@ The network panel provides some configuration for:
 ![](screenshots/create-new-dialog-advanced.png)
 
 The advanced settings currently allow the installation of a Dashboard in the cluster.
-The current Dashboard installed is Rancher, but this should be configurable in
-the future for allowing some other alternatives. 
+The current Dashboard installed is [Rancher](https://rancher.com/products/rancher/),
+but this should be configurable in the future for allowing some other alternative. 

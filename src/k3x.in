@@ -1,6 +1,6 @@
 #!@PYTHON@
 
-# k3dv.in
+# k3x.in
 #
 # MIT License
 #
@@ -35,14 +35,26 @@ localedir = '@localedir@'
 
 sys.path.insert(1, pkgdatadir)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
-gettext.install('k3dv', localedir)
+gettext.install('k3x', localedir)
 
 if __name__ == '__main__':
     import gi
 
     from gi.repository import Gio
-    resource = Gio.Resource.load(os.path.join(pkgdatadir, 'k3dv.gresource'))
+    resource = Gio.Resource.load(os.path.join(pkgdatadir, 'k3x.gresource'))
     resource._register()
 
-    from k3dv import main
+    print(f"[PRE-MAIN] Adding to GI path @PREFIX@/lib/girepository-1.0/")
+    import gi.repository
+    # Set the search path to use the newly generated introspection files
+    gi.require_version('GIRepository', '2.0')
+    from gi.repository import GIRepository
+    GIRepository.Repository.prepend_search_path('@PREFIX@/lib/girepository-1.0/')
+    print("GI search path:")
+    for p in GIRepository.Repository.get_search_path():
+        print("[PRE-MAIN]  - " + p)
+
+    print(f"[PRE-MAIN] Current LD_LIBRARY_PATH: " + os.getenv("LD_LIBRARY_PATH", default=""))
+
+    from k3x import main
     sys.exit(main.main(VERSION))
