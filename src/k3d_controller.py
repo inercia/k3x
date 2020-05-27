@@ -108,9 +108,9 @@ class K3dController(GObject.GObject):
                 try:
                     logging.debug(f"[K3D] Parsed components: {components}")
                     name, image, status = components[0:3]
-                    logging.debug(f"[K3D] Parsed cluster info: name={name}, image={image}")
-                    cs[name] = K3dCluster(settings=self._settings, docker=self._docker, name=name, image=image,
-                                          status=status)
+                    logging.debug(f"[K3D] Parsed cluster info: name={name}, image={image}, status={status}")
+                    cs[name] = K3dCluster(settings=self._settings, docker=self._docker,
+                                          name=name, image=image, status=status)
                 except Exception as e:
                     logging.exception(f"[K3D] PARSER ERROR !!!! Could not parse {line}: {e}")
                     show_notification(f"Could not parse {line}: {e}", header="f{name} INTERNAL ERROR",
@@ -143,7 +143,7 @@ class K3dController(GObject.GObject):
             return
 
         if new_cluster_name not in self.clusters:
-            logging.warning(f"[K3D] Activating an unknown cluster '{new_cluster_name}'")
+            logging.info(f"[K3D] Active cluster '{new_cluster_name}' is not known: probably not a K3D cluster")
             if self._active is not None:
                 emit_in_main_thread(self, "change-current-cluster", None)
             self._active = None
@@ -151,7 +151,7 @@ class K3dController(GObject.GObject):
 
         logging.info(f"[K3D] Switching to cluster '{new_cluster_name}'")
         try:
-            kubectl_set_current_context(new_cluster_name)
+            kubectl_set_current_context(new_cluster_name, kubeconfig=self.kubeconfig)
         except Exception as e:
             logging.exception(f"[K3D] When switching to cluster '{new_cluster_name}': {e}")
         else:
@@ -288,7 +288,7 @@ class K3dController(GObject.GObject):
                 logging.debug(f"[K3D] Will activate cluster forced cluster {active_cluster.name} later on...")
                 cluster_name_to_activate = active_cluster.name
             elif initial:
-                cluster_name_to_activate = kubectl_get_current_context()
+                cluster_name_to_activate = kubectl_get_current_context(kubeconfig=self.kubeconfig)
                 logging.debug(
                     f"[K3D] First time we refresh KUBECONFIG: will save currently active cluster {cluster_name_to_activate}...")
             elif len(self.clusters) > 0 and self.active is not None:
@@ -327,7 +327,7 @@ class K3dController(GObject.GObject):
             if cluster_name_to_activate is not None and cluster_name_to_activate in self.clusters:
                 self.active = cluster_name_to_activate
             else:
-                self.active = kubectl_get_current_context()
+                self.active = kubectl_get_current_context(kubeconfig=self.kubeconfig)
 
             if changes:
                 # note: no need of call_in_main_thread for this `emit`, as `inner_refresh` has

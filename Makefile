@@ -204,6 +204,17 @@ release:  ## Adds a new TAG and pushes it to the origin for forcing a new releas
 	@printf "$(CYN)>>> $(GRN)Pushing tags $(TAG$)$(END)\n"
 	$(Q)git push --tags || { printf "$(CYN)>>> $(RED)Failed to push new tag $(TAG) to origin$(END)\n" ; exit 1 ; }
 
+
+flathub-pull: ## Pull changes in the flathub
+	@printf "$(CYN)>>> $(GRN)Pulling changes in 'flathub' submodule$(END)\n"
+	$(Q)git submodule update --remote --merge -- flathub
+	@printf "$(CYN)>>> $(GRN)Done$(END)\n"
+
+flathub-commit:
+	@printf "$(CYN)>>> $(GRN)Committing current state of flathub$(END)\n"
+	$(Q)git add flathub && git commit -m "Updated flathub"
+	@printf "$(CYN)>>> $(GRN)Done. You can now 'git push'$(END)\n"
+
 ##############################
 # CI
 ##############################
@@ -227,7 +238,3 @@ ci/setup:
 ci/build: build
 
 ci/release: package
-
-
-
-

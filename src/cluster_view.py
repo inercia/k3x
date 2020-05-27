@@ -108,7 +108,12 @@ class ClusterDialog(Gtk.Window):
             delete_button.connect("clicked", self.on_delete_clicked)
             self.header.pack_end(delete_button)
 
-            if self._controller.active != cluster:
+            if not cluster.running:
+                switch_button = Gtk.Button(label="Start")
+                switch_button.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
+                switch_button.connect("clicked", self.on_start_clicked)
+                self.header.pack_end(switch_button)
+            elif self._controller.active != cluster:
                 switch_button = Gtk.Button(label="Switch to")
                 switch_button.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
                 switch_button.connect("clicked", self.on_switch_clicked)
@@ -159,6 +164,11 @@ class ClusterDialog(Gtk.Window):
     def on_switch_clicked(self, *args):
         logging.info(f"[VIEW] Switching to {self.cluster}")
         self._controller.active = self.cluster
+        self.close()
+
+    def on_start_clicked(self, *args):
+        logging.info(f"[VIEW] Starting {self.cluster}")
+        self.cluster.start()
         self.close()
 
     def on_cancel_clicked(self, *args):
@@ -365,11 +375,12 @@ class GeneralSettingsPage(SettingsPage):
                                                     "If you expected the Dashboard to be available, "
                                                     "please wait and try again in a while...")
 
-            open_button = Gtk.Button(label="Open")
-            open_button.connect("clicked", _open_dashboard)
-            box.pack_start(open_button, True, True, 0)
+            if self.cluster.running:
+                open_button = Gtk.Button(label="Open")
+                open_button.connect("clicked", _open_dashboard)
+                box.pack_start(open_button, True, True, 0)
 
-            self.append_labeled_entry("Server IP address", box)
+                self.append_labeled_entry("Server IP address", box)
 
         # Disable everything if the cluster already exists
         if self.cluster is not None:

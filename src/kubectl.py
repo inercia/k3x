@@ -42,7 +42,7 @@ def run_kubectl_command(*args, **kwargs) -> Iterator[str]:
     Run a kubectl command
     """
     kubeconfig = kwargs.pop("kubeconfig", None)
-    if kubeconfig:
+    if kubeconfig is not None:
         env = kwargs.pop("env", os.environ.copy())
         env["KUBECONFIG"] = kubeconfig
         kwargs["env"] = env
@@ -88,7 +88,7 @@ def merge_kubeconfigs_to(kubeconfigs: List[str], dest: str):
         logging.debug("[KUBECTL] No changes in KUBECONFIG: no need to overwrite it.")
 
 
-def kubectl_apply_manifest(manifest, kubeconfig=None, **kwargs) -> Iterator[str]:
+def kubectl_apply_manifest(manifest: str, kubeconfig: Optional[str] = None, **kwargs) -> Iterator[str]:
     """
     Apply a manifest with `kubectl apply -f` (using a temporary file)
     """
@@ -101,12 +101,13 @@ def kubectl_apply_manifest(manifest, kubeconfig=None, **kwargs) -> Iterator[str]
         yield from run_kubectl_command(*args, kubeconfig=kubeconfig, **kwargs)
 
 
-def kubectl_get_current_context() -> Optional[str]:
+def kubectl_get_current_context(kubeconfig: Optional[str] = None) -> Optional[str]:
     """
     Get the currently active context
     """
+    args = ["config", "current-context"]
     try:
-        lines = [line for line in run_kubectl_command("config", "current-context")]
+        lines = [line for line in run_kubectl_command(*args, kubeconfig=kubeconfig)]
     except subprocess.CalledProcessError as e:
         logging.warning(f"No current context obtained with kubectl (maybe no clusters exist): {e}")
         return None
@@ -114,12 +115,13 @@ def kubectl_get_current_context() -> Optional[str]:
     return lines[0]
 
 
-def kubectl_set_current_context(context) -> None:
+def kubectl_set_current_context(context: str, kubeconfig: Optional[str] = None) -> None:
     """
     Run `kubectl config use-context my-cluster-name`
     """
+    args = ["config", "use-context", context]
     try:
-        lines = [line for line in run_kubectl_command("config", "use-context", context)]
+        lines = [line for line in run_kubectl_command(*args, kubeconfig=kubeconfig)]
     except subprocess.CalledProcessError as e:
         logging.exception(f"Could not set the current context with kubectl: {e}")
         return None

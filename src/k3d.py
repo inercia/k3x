@@ -136,13 +136,14 @@ class K3dCluster(GObject.GObject):
 
     def __init__(self, settings: ApplicationSettings, docker: DockerController, **kwargs):
         super().__init__()
-        self.__dict__.update(kwargs)
         self._docker = docker
         self._settings = settings
         self._kubeconfig = None
         self._docker_server_ip = None
         self._notification = None
         self._destroyed = False
+        self._status = kwargs.pop("status", "running")
+        self.__dict__.update(kwargs)
 
         # TODO: check the name is valid
         if len(self.name) == 0:
@@ -166,7 +167,7 @@ class K3dCluster(GObject.GObject):
 
     def __ne__(self, other) -> bool:
         if other is None:
-            return False
+            return True
         if isinstance(other, K3dCluster):
             return self.name != other.name
         if isinstance(other, str):
@@ -258,6 +259,7 @@ class K3dCluster(GObject.GObject):
             raise
 
         logging.info("[K3D] The cluster has been created")
+        self._status = "running"
 
         call_in_main_thread(lambda: self.emit("created", self.name))
 
@@ -298,7 +300,7 @@ class K3dCluster(GObject.GObject):
     @property
     def kubeconfig(self) -> Optional[str]:
         """
-        Get the kuhbeconfig file for this cluster, or None if no
+        Get the kubeconfig file for this cluster, or None if no
         """
         if self._destroyed:
             return None
@@ -319,6 +321,36 @@ class K3dCluster(GObject.GObject):
                     break
 
         return self._kubeconfig
+
+    @property
+    def running(self) -> bool:
+        return self._status == "running"
+
+    def start(self) -> None:
+        if not self.running:
+            args = []
+            args += [f"--name={self.name}"]
+
+            logging.debug(f"[K3D] Starting {self.name}...")
+            while True:
+                try:
+                    line = next(run_k3d_command("start", *args))
+                    logging.debug(f"[K3D] {line}")
+                except StopIteration:
+                    break
+
+    def stop(self) -> None:
+        if self.running:
+            args = []
+            args += [f"--name={self.name}"]
+
+            logging.debug(f"[K3D] Stopping {self.name}...")
+            while True:
+                try:
+                    line = next(run_k3d_command("stop", *args))
+                    logging.debug(f"[K3D] {line}")
+                except StopIteration:
+                    break
 
     @property
     def docker_server_name(self) -> Optional[str]:
