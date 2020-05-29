@@ -47,7 +47,7 @@ def run_kubectl_command(*args, **kwargs) -> Iterator[str]:
         env["KUBECONFIG"] = kubeconfig
         kwargs["env"] = env
 
-    logging.debug(f"[KUBECTL] Running kubectl command {args} {kwargs}")
+    logging.debug(f"[KUBECTL] Running kubectl command {args}")
 
     # IMPORTANT: remember to "consume" this iterator, or this will not be run at all
     yield from run_command_stdout(kubectl_exe, *args, **kwargs)

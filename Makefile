@@ -30,6 +30,8 @@ BUILD_ROOT               = $(PROJECT_ROOT)/.flatpak-builder
 
 FLATPAK_BUNDLE          ?= $(PROJECT_ROOT)/$(APP_ID).flatpak
 
+FLATPAK_RUN_COMMAND     ?= k3x
+
 STATE_DIR                = $(BUILD_ROOT)
 CCACHE_DIR               = $(BUILD_ROOT)/ccache
 BUILD_DIR               ?= $(BUILD_ROOT)/build/staging
@@ -116,13 +118,6 @@ help: ## Show this help screen
 ##############################
 ##@ Development
 
-pypi-dependencies.json: build-aux/flatpak-pip-generator requirements.txt
-	build-aux/flatpak-pip-generator --requirements-file=requirements.txt --output pypi-dependencies
-
-build-aux/flatpak-pip-generator:
-	curl -o build-aux/flatpak-pip-generator https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/master/pip/flatpak-pip-generator
-	chmod 755 build-aux/flatpak-pip-generator
-
 deps: ## Install all the required dependencies for building/running
 	@printf "$(CYN)>>> $(GRN)Adding flatpak dependencies (apps, frameworks...)...$(END)\n"
 	flatpak --user remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -162,9 +157,13 @@ run: $(BUILD_DIR)/build.ninja ## Run the application locally
 		printf "$(CYN)>>> $(GRN)Running ninja install (in build_dir=$(BUILD_DIR))...$(END)\n" && \
 		flatpak build --build-dir=$(BUILD_DIR) $(FLATPAK_BUILD_ARGS) ninja install
 
-	@printf "$(CYN)>>> $(GRN)Running k3x in a sandbox...$(END)\n"
+	@printf "$(CYN)>>> $(GRN)Running $(FLATPAK_RUN_COMMAND) in the sandbox...$(END)\n"
 	$(Q)flatpak-builder $(FLATPAK_RUN_ARGS) $(FLATPAK_RUN_SHARES) --run $(BUILD_DIR) $(FLATPAK_MANIFEST) \
-		k3x
+		$(FLATPAK_RUN_COMMAND)
+
+.PHONY: shell
+shell: FLATPAK_RUN_COMMAND=bash
+shell: run ## Run a shell in the sandbox
 
 ##############################
 # Clean
@@ -215,6 +214,13 @@ $(FLATPAK_BUNDLE): $(FLATPAK_MANIFEST) $(APP_SRC_MESONS) $(APP_SRC_PY) $(APP_SRC
 	@printf "$(CYN)>>> $(GRN)Building bundle from repo_dir=$(FLATPAK_REPO_DIR) -> bundle=$(FLATPAK_BUNDLE)$(END)\n"
 	$(Q)flatpak build-bundle --arch=x86_64 $(FLATPAK_REPO_DIR) $(FLATPAK_BUNDLE) $(APP_ID) master
 	@printf "$(CYN)>>> $(GRN)Bundle available at $(FLATPAK_BUNDLE)$(END)\n"
+
+generate: build-aux/flatpak-pip-generator requirements.txt ## Regenerate some files (ie, pypi-dependencies.json)
+	build-aux/flatpak-pip-generator --requirements-file=requirements.txt --output pypi-dependencies
+
+build-aux/flatpak-pip-generator:
+	curl -o build-aux/flatpak-pip-generator https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/master/pip/flatpak-pip-generator
+	chmod 755 build-aux/flatpak-pip-generator
 
 ##############################
 # releases

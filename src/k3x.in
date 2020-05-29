@@ -37,6 +37,12 @@ sys.path.insert(1, pkgdatadir)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 gettext.install('k3x', localedir)
 
+# extra search path (in reverse order of precedence)
+GI_EXTRA_SEARCH_PATH = [
+    '/usr/lib/x86_64-linux-gnu/girepository-1.0',
+    '@PREFIX@/lib/girepository-1.0/'
+]
+
 if __name__ == '__main__':
     import gi
 
@@ -44,15 +50,18 @@ if __name__ == '__main__':
     resource = Gio.Resource.load(os.path.join(pkgdatadir, 'k3x.gresource'))
     resource._register()
 
-    print(f"[PRE-MAIN] Adding to GI path @PREFIX@/lib/girepository-1.0/")
     import gi.repository
     # Set the search path to use the newly generated introspection files
     gi.require_version('GIRepository', '2.0')
+
+    # FIXME: for some unknown reason, we must add the standard GI paths
     from gi.repository import GIRepository
-    GIRepository.Repository.prepend_search_path('@PREFIX@/lib/girepository-1.0/')
+    for d in GI_EXTRA_SEARCH_PATH:
+        GIRepository.Repository.prepend_search_path(d)
+
     print("GI search path:")
     for p in GIRepository.Repository.get_search_path():
-        print("[PRE-MAIN]  - " + p)
+        print("[PRE-MAIN]  [search-path] - " + p)
 
     print(f"[PRE-MAIN] Current LD_LIBRARY_PATH: " + os.getenv("LD_LIBRARY_PATH", default=""))
 

@@ -11,5 +11,6 @@ __pycache__
 
 /*.xz
 /*.flatpak
+/builddir
 
 build-aux/flatpak-pip-generator
