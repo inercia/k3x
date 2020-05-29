@@ -37,12 +37,6 @@ sys.path.insert(1, pkgdatadir)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 gettext.install('k3x', localedir)
 
-# extra search path (in reverse order of precedence)
-GI_EXTRA_SEARCH_PATH = [
-    '/usr/lib/x86_64-linux-gnu/girepository-1.0',
-    '@PREFIX@/lib/girepository-1.0/'
-]
-
 if __name__ == '__main__':
     import gi
 
@@ -56,8 +50,7 @@ if __name__ == '__main__':
 
     # FIXME: for some unknown reason, we must add the standard GI paths
     from gi.repository import GIRepository
-    for d in GI_EXTRA_SEARCH_PATH:
-        GIRepository.Repository.prepend_search_path(d)
+    GIRepository.Repository.prepend_search_path('/usr/lib/x86_64-linux-gnu/girepository-1.0')
 
     print("GI search path:")
     for p in GIRepository.Repository.get_search_path():
