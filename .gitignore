@@ -2,6 +2,7 @@
 .flatpak-builder
 build
 .vscode
+.idea
 
 # Python
 *.pyc
@@ -10,3 +11,5 @@ __pycache__
 
 /*.xz
 /*.flatpak
+
+build-aux/flatpak-pip-generator

@@ -1,0 +1,14 @@
+--- com.github.inercia.k3x.json	2020-05-28 13:42:29.761854808 +0200
++++ com.github.inercia.k3x.json	2020-05-28 13:42:29.761854808 +0200
+@@ -73,8 +73,9 @@
+       "buildsystem": "meson",
+       "sources": [
+         {
+-          "type": "dir",
+-          "path": "."
++          "type": "git",
++          "url": "https://github.com/inercia/k3x.git",
++          "tag": "@TAG@"
+         }
+       ]
+     }

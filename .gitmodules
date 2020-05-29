@@ -1,7 +1,3 @@
 [submodule "shared-modules"]
 	path = shared-modules
 	url = https://github.com/flathub/shared-modules.git
-[submodule "flathub"]
-	path = flathub
-	url = https://github.com/inercia/flathub.git
-	branch = k3x

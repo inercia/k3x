@@ -1,26 +1,23 @@
 {
   "app-id": "com.github.inercia.k3x",
-  "runtime": "org.gnome.Platform",
-  "runtime-version": "3.34",
-  "sdk": "org.gnome.Sdk",
+  "base": "io.elementary.BaseApp",
+  "base-version": "juno-19.08",
+  "runtime": "org.freedesktop.Platform",
+  "sdk": "org.freedesktop.Sdk",
+  "runtime-version": "19.08",
   "command": "k3x",
   "finish-args": [
     "--device=dri",
     "--share=ipc",
-    "--socket=x11",
+    "--socket=fallback-x11",
     "--socket=wayland",
     "--socket=ssh-auth",
     "--share=network",
-    "--env=LD_LIBRARY_PATH=/app/lib:/app/lib/x86_64-linux-gnu:/lib64:/lib:/usr/lib64:/usr/lib:/usr/local/lib",
     "--filesystem=/run/docker.sock",
     "--talk-name=org.freedesktop.Notifications",
     "--talk-name=org.kde.StatusNotifierWatcher",
     "--talk-name=com.canonical.indicator.application",
     "--talk-name=org.ayatana.indicator.application",
-    "--talk-name=ca.desrt.dconf",
-    "--filesystem=xdg-run/dconf",
-    "--filesystem=~/.config/dconf:ro",
-    "--env=DCONF_USER_CONFIG_DIR=.config/dconf",
     "--filesystem=home:rw"
   ],
   "cleanup": [
@@ -37,33 +34,9 @@
     "*.la",
     "*.a"
   ],
+  "copy-icon": true,
   "modules": [
     "shared-modules/libappindicator/libappindicator-gtk3-introspection-12.10.json",
-    {
-      "name": "libappindicator"
-    },
-    {
-      "name": "granite",
-      "buildsystem": "meson",
-      "sources": [
-        {
-          "type": "git",
-          "url": "https://github.com/elementary/granite.git",
-          "tag": "5.3.1"
-        }
-      ]
-    },
-    {
-      "name": "elementary-icons",
-      "buildsystem": "meson",
-      "sources": [
-        {
-          "type": "git",
-          "url": "https://github.com/elementary/icons.git",
-          "tag": "5.0"
-        }
-      ]
-    },
     {
       "name": "kubectl",
       "buildsystem": "simple",
@@ -79,20 +52,7 @@
         }
       ]
     },
-    {
-      "name": "requirements",
-      "buildsystem": "simple",
-      "build-options": {
-        "build-args": [
-          "--share=network"
-        ]
-      },
-      "build-commands": [
-        "pip3 install --prefix=${FLATPAK_DEST} xcffib xpybutil system_hotkey",
-        "pip3 install --prefix=${FLATPAK_DEST} pyyaml",
-        "pip3 install --prefix=${FLATPAK_DEST} docker"
-      ]
-    },
+    "pypi-dependencies.json",
     {
       "name": "k3d",
       "buildsystem": "simple",

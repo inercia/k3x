@@ -20,7 +20,10 @@ APP_SRC_DATA             = $(wildcard data/*.in) $(wildcard data/*.xml)
 
 FLATPAK_SDK              = org.gnome.Sdk
 FLATPAK_RUNTIME          = org.gnome.Platform
-FLATPAK_RUNTIME_VERSION  = 3.34
+FLATPAK_RUNTIME_VERSION  = 3.36
+
+FLATPAK_BASE_APP         = io.elementary.BaseApp
+FLATPAK_BASE_VERSION     = juno-19.08
 
 FLATPAK_MANIFEST         = $(PROJECT_ROOT)/com.github.inercia.k3x.json
 BUILD_ROOT               = $(PROJECT_ROOT)/.flatpak-builder
@@ -49,7 +52,7 @@ FLATPAK_RUN_ARGS         = \
 
 FLATPAK_RUN_SHARES       = \
 	--share=ipc \
-	--socket=x11 \
+	--socket=fallback-x11 \
 	--share=network \
 	--socket=wayland \
 	--filesystem=xdg-run/dconf \
@@ -73,7 +76,16 @@ FLATPAK_BUILDER_ARGS        = \
 FLATPAK_BUILD_ARGS = \
 	$(FLATPAK_RUN_ARGS) $(FLATPAK_RUN_SHARES) $(BUILD_DIR)
 
-TAG ?=
+# the submodule for flathub
+FLATHUB_DIR     = $(PROJECT_ROOT)/flathub
+FLATHUB_PATCH   = $(PROJECT_ROOT)/build-aux/flathub-diff.patch
+
+
+# pep8 ignores
+PEP8_IGNORE = E402,E501,E722
+
+TAG          ?=
+TAG_LATEST    = $(shell git describe --abbrev=0)
 
 NINJA_TARGET ?=
 
@@ -102,8 +114,21 @@ help: ## Show this help screen
 ##############################
 # Development
 ##############################
-
 ##@ Development
+
+pypi-dependencies.json: build-aux/flatpak-pip-generator requirements.txt
+	build-aux/flatpak-pip-generator --requirements-file=requirements.txt --output pypi-dependencies
+
+build-aux/flatpak-pip-generator:
+	curl -o build-aux/flatpak-pip-generator https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/master/pip/flatpak-pip-generator
+	chmod 755 build-aux/flatpak-pip-generator
+
+deps: ## Install all the required dependencies for building/running
+	@printf "$(CYN)>>> $(GRN)Adding flatpak dependencies (apps, frameworks...)...$(END)\n"
+	flatpak --user remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+	flatpak --user install -y flathub $(FLATPAK_RUNTIME)/x86_64/$(FLATPAK_RUNTIME_VERSION)
+	flatpak --user install -y flathub $(FLATPAK_SDK)/x86_64/$(FLATPAK_RUNTIME_VERSION)
+	flatpak --user install -y flathub $(FLATPAK_BASE_APP)/x86_64/$(FLATPAK_BASE_VERSION)
 
 $(BUILD_DIR):
 	@printf "$(CYN)>>> $(GRN)Creating build dir $(BUILD_DIR) ...$(END)\n"
@@ -123,7 +148,7 @@ $(BUILD_DIR)/build.ninja: $(BUILD_DIR) $(FLATPAK_MANIFEST) $(APP_SRC_MESONS)
 	$(Q)flatpak build --build-dir=$(BUILD_DIR) $(FLATPAK_BUILD_ARGS) meson $(PROJECT_ROOT) . --prefix=/app
 
 .PHONY: build
-build: $(BUILD_DIR)/build.ninja ## Build the application
+build: pypi-dependencies.json $(BUILD_DIR)/build.ninja ## Build the application
 
 ##@ Local dev loop
 
@@ -149,7 +174,7 @@ run: $(BUILD_DIR)/build.ninja ## Run the application locally
 .PHONY: clean
 clean: ## Clean build products
 	@printf "$(CYN)>>> $(GRN)Doing a quick clean-up...$(END)\n"
-	$(Q)rm -rf $(BUILD_DIR) $(RELEASE_DIR) $(FLATPAK_BUNDLE)
+	$(Q)rm -rf $(BUILD_DIR) $(RELEASE_DIR) $(FLATPAK_BUNDLE) pypi-dependencies.json
 
 .PHONY: distclean
 distclean: ## Clean-up everything
@@ -163,11 +188,11 @@ distclean: ## Clean-up everything
 ##@ Development: checks and tests
 
 .PHONY: clean
-check: pep8 ## check code style
+check: pep8 ## Check code style
 
 .PHONY: pep8
 pep8:
-	$(Q)find src -name \*.py -exec pycodestyle --ignore=E402,E501,E722 {} +
+	$(Q)find src -name \*.py -exec pycodestyle --ignore=$(PEP8_IGNORE) {} +
 
 ##############################
 # Packaging
@@ -204,16 +229,31 @@ release:  ## Adds a new TAG and pushes it to the origin for forcing a new releas
 	@printf "$(CYN)>>> $(GRN)Pushing tags $(TAG$)$(END)\n"
 	$(Q)git push --tags || { printf "$(CYN)>>> $(RED)Failed to push new tag $(TAG) to origin$(END)\n" ; exit 1 ; }
 
+##############################
+# Flathub
+##############################
+##@ Flathub packages
 
-flathub-pull: ## Pull changes in the flathub
+# other flatpak stuff
+
+flathub-pull: ## Pull changes from the Flathub repository to the submodule
 	@printf "$(CYN)>>> $(GRN)Pulling changes in 'flathub' submodule$(END)\n"
-	$(Q)git submodule update --remote --merge -- flathub
+	$(Q)git submodule update --remote --merge -- $(FLATHUB_DIR)
 	@printf "$(CYN)>>> $(GRN)Done$(END)\n"
 
-flathub-commit:
-	@printf "$(CYN)>>> $(GRN)Committing current state of flathub$(END)\n"
-	$(Q)git add flathub && git commit -m "Updated flathub"
-	@printf "$(CYN)>>> $(GRN)Done. You can now 'git push'$(END)\n"
+flathub-update: pypi-dependencies.json  ## Update the contents of the Flatub submodule
+	$(Q)[ -d "$(FLATHUB_DIR)" ] || { printf "$(CYN)>>> $(RED)No $(FLATHUB_DIR) directory$(END)\n" ; exit 1 ; }
+
+	@printf "$(CYN)>>> $(GRN)Copying pypi dependencies$(END)\n"
+	$(Q)cp -f pypi-dependencies.json $(FLATHUB_DIR)/
+
+	@printf "$(CYN)>>> $(GRN)Copying manifest$(END)\n"
+	$(Q)rm -f $(FLATHUB_DIR)/$(FLATPAK_MANIFEST)
+	$(Q)cp -f $(FLATPAK_MANIFEST) $(FLATHUB_DIR)/
+
+	@printf "$(CYN)>>> $(GRN)Patching manifest$(END)\n"
+	$(Q)cd $(FLATHUB_DIR) && \
+		cat $(FLATHUB_PATCH) | sed -e 's|@TAG@|$(TAG_LATEST)|g' | patch -p0
 
 ##############################
 # CI
@@ -225,10 +265,7 @@ ci/setup:
 	sudo apt-get update -q
 	sudo apt-get install -y flatpak flatpak-builder elfutils
 
-	@printf "$(CYN)>>> $(GRN)Adding flatpak remote...$(END)\n"
-	flatpak --user remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-	flatpak --user install -y flathub $(FLATPAK_RUNTIME)/x86_64/$(FLATPAK_RUNTIME_VERSION)
-	flatpak --user install -y flathub $(FLATPAK_SDK)/x86_64/$(FLATPAK_RUNTIME_VERSION)
+	make deps
 
 	@printf "$(CYN)>>> $(GRN)Installing pep8...$(END)\n"
 	sudo apt-get -y install python3-pip
