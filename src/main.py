@@ -24,7 +24,6 @@
 
 
 import logging
-import signal
 
 import gi
 
@@ -73,11 +72,12 @@ class Indicator(object):
         logging.debug("[MAIN] Creating settings manager...")
         self._settings = ApplicationSettings(APP_ID)
 
+        self._notifier = notify.init(APP_ID)
+
         logging.debug("[MAIN] Creating Docker controller...")
         self._docker = DockerController(settings=self._settings)
 
         logging.debug("[MAIN] Creating clusters manager...")
-        self._notifier = notify.init(APP_ID)
         self._controller = K3dController(settings=self._settings, docker=self._docker)
 
         logging.debug("[MAIN] Creating menu...")

@@ -24,10 +24,11 @@
 
 
 import logging
-import os
 from typing import Optional
 
-from .config import ApplicationSettings, SETTINGS_KEY_DOCKER_ENDPOINT, DEFAULT_INVALID_CHARS_DOCKER_NAME
+from .config import ApplicationSettings
+from .config import SETTINGS_KEY_DOCKER_ENDPOINT, DEFAULT_INVALID_CHARS_DOCKER_NAME
+from .utils_ui import show_notification
 
 
 def is_valid_docker_name(name: str) -> bool:
@@ -35,6 +36,20 @@ def is_valid_docker_name(name: str) -> bool:
     Returns True if the given name is a valid Docker container/volume name
     """
     return not any([x in name for x in DEFAULT_INVALID_CHARS_DOCKER_NAME])
+
+
+def is_valid_docker_host(url: str) -> bool:
+    """
+    Check there is a Docker listening at a given URL
+    """
+    try:
+        logging.info(f"Verifying connectivity to DOCKER_HOST={url}")
+        import docker
+        cli = docker.DockerClient(base_url=url)
+        _ = cli.info()
+    except Exception as e:
+        return False
+    return True
 
 
 class DockerController(object):
@@ -47,34 +62,41 @@ class DockerController(object):
         settings.connect(f"changed::{SETTINGS_KEY_DOCKER_ENDPOINT}", lambda s, k: self._recreate_client())
 
     def _recreate_client(self):
-        dh = self.docker_host
-        logging.info(f"Creating/recreating docker client with DOCKER_HOST={dh}")
-        os.environ.update(DOCKER_HOST=dh)
+        try:
+            dh = self.docker_host
+            logging.info(f"Creating/recreating docker client with DOCKER_HOST={dh}")
 
-        import docker
-        self._client = docker.from_env()
+            import docker
+            self._client = docker.DockerClient(base_url=dh)
+            info = self._client.info()
+        except Exception as e:
+            show_notification(f"Could not connect to Docker at\n{dh}:\n{e}",
+                              header="Could not connect to Docker daemon",
+                              icon="dialog-error")
+            self._client = None
 
     @property
     def docker_host(self) -> str:
         """
         Returns the current DOCKER_HOST stored in the preferences.
         """
-        return str(self._settings.get_string(SETTINGS_KEY_DOCKER_ENDPOINT).strip("\'").strip("\""))
+        return self._settings.get_safe_string(SETTINGS_KEY_DOCKER_ENDPOINT)
 
     @property
     def default_docker_host(self) -> str:
         """
         Returns the default value for the DOCKER_HOST
         """
-        return str(self._settings.get_default_value(SETTINGS_KEY_DOCKER_ENDPOINT)).strip('\'').strip('\"')
+        return self._settings.get_safe_default_string(SETTINGS_KEY_DOCKER_ENDPOINT)
 
     def get_container_by_name(self, name: str) -> Optional[str]:
         """
         Return the container with the given name, or None if it could not be found.
         """
-        for c in self._client.containers.list():
-            if c.name == name:
-                return c
+        if self._client is not None:
+            for c in self._client.containers.list():
+                if c.name == name:
+                    return c
         return None
 
     def get_container_ip(self, container, network_name: str) -> str:
@@ -87,4 +109,13 @@ class DockerController(object):
 
     def get_official_k3s_images(self):
         # should return the same as https://hub.docker.com/r/rancher/k3s/tags
-        return self._client.images.list("rancher/k3s")
+        if self._client is not None:
+            return self._client.images.list("rancher/k3s")
+        return []
+
+    @property
+    def valid(self) -> bool:
+        """
+        Return True when the Docker client is valid
+        """
+        return self._client is not None

@@ -108,6 +108,7 @@ SETTINGS_KEY_CREATE_HOOK = "cluster-create-hook"
 
 SETTINGS_KEY_DESTROY_HOOK = "cluster-destroy-hook"
 
+
 ###############################################################################
 # settings
 ###############################################################################
@@ -129,6 +130,12 @@ class ApplicationSettings(object):
         Get a string but stripping any quotes
         """
         return str(self._settings.get_string(key)).strip("\'").strip("\"")
+
+    def get_safe_default_string(self, key: str) -> str:
+        """
+        Get the default string but stripping any quotes
+        """
+        return str(self._settings.get_default_value(key)).strip("\'").strip("\"")
 
     def get_keybinding(self, key: str) -> str:
         """

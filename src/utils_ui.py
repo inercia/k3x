@@ -94,21 +94,27 @@ def show_notification(msg, header: str = None, icon: str = None,
         return do_notify(notification)
 
 
-def show_error_dialog(msg: str, explanation: str, icon: str = "dialog-error", ok_label: str = "Ok"):
+def show_error_dialog(msg: str, explanation: str, icon: str = "dialog-error",
+                      parent=None, ok_label: str = "Ok") -> None:
     """
-    Show a info/warning dialog, with just one OK button
+    Show a info/warning dialog, with just a "Close" button
     """
-    error_diag = Granite.MessageDialog.with_image_from_icon_name(
-        msg, "\n\n" + explanation, icon, Gtk.ButtonsType.OK_CANCEL)
 
-    button_ok = Gtk.Button(label=ok_label)
-    error_diag.add_action_widget(button_ok, Gtk.ResponseType.OK)
+    def do_show():
+        error_diag = Granite.MessageDialog.with_image_from_icon_name(
+            msg, "\n\n" + explanation, icon, Gtk.ButtonsType.CLOSE)
 
-    error_diag.set_flags = Gtk.DialogFlags.MODAL
+        if parent is not None:
+            error_diag.set_transient_for(parent)
+            error_diag.set_flags = Gtk.DialogFlags.MODAL
 
-    error_diag.show_all()
-    error_diag.run()
-    error_diag.destroy()
+        error_diag.connect("response", lambda widget, response_id: widget.destroy())
+        error_diag.show_all()
+
+    if running_on_main_thread():
+        do_show()
+    else:
+        call_in_main_thread(do_show)
 
 
 def show_warning_dialog(msg: str, explanation: str):
@@ -116,30 +122,6 @@ def show_warning_dialog(msg: str, explanation: str):
     Show a warning dialog, with just one OK button
     """
     show_error_dialog(msg, explanation, icon="dialog-warning")
-
-
-def show_yes_no_dialog(msg: str, header: str, icon: str = "dialog-warning",
-                       ok_label: str = "Ok", cancel_label: str = "Cancel",
-                       window=None) -> str:
-    delete_diag = Granite.MessageDialog.with_image_from_icon_name(header, "\n\n" + msg, icon, Gtk.ButtonsType.OK_CANCEL)
-
-    button_delete = Gtk.Button(label=ok_label)
-    button_delete.get_style_context().add_class(Gtk.STYLE_CLASS_DESTRUCTIVE_ACTION)
-    delete_diag.add_action_widget(button_delete, Gtk.ResponseType.OK)
-
-    button_cancel = Gtk.Button(label=cancel_label)
-    button_cancel.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
-    delete_diag.add_action_widget(button_cancel, Gtk.ResponseType.CANCEL)
-
-    if window:
-        delete_diag.set_transient_for(window)
-
-    delete_diag.set_flags = Gtk.DialogFlags.MODAL
-
-    delete_diag.show_all()
-    response = delete_diag.run()
-    delete_diag.destroy()
-    return response
 
 
 ###############################################################################

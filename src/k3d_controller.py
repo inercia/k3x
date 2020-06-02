@@ -42,7 +42,7 @@ from .utils import (call_in_main_thread,
                     call_periodically,
                     truncate_file,
                     run_hook_script, ScriptError)
-from .utils_ui import show_notification
+from .utils_ui import show_notification, show_error_dialog
 
 # the header/footer length in the "k3d list" output
 K3D_LIST_HEADER_LEN = 3
@@ -187,6 +187,14 @@ class K3dController(GObject.GObject):
         name = kwargs.get("name")
         post_create_hook = kwargs.pop("post_create_hook", None)
 
+        if not self._docker.valid:
+            show_error_dialog(msg=f"Could not connect to Docker at {self._docker.docker_host}",
+                              explanation=f"Please check that\n\n"
+                                          "1) Docker is installed and running\n"
+                                          f"3) '<tt>{self._docker.docker_host}</tt>' exists and is accessible\n"
+                                          "3) the Docker URL in the <b><i>Preferences</i></b> is correct.")
+            return None
+
         try:
             cluster = K3dCluster(settings=self._settings, docker=self._docker, **kwargs)
         except Exception as e:
@@ -263,7 +271,6 @@ class K3dController(GObject.GObject):
                     cluster.show_notification(f"Cluster {name} post-destruction script failed: {e}.",
                                               header=f"Script error", icon="dialog-error")
                     logging.exception(f"Cluster {name} post-creation script '{post_destroy_hook}' failed: {e}.")
-
 
     def refresh(self, initial=False, active_cluster: Optional[K3dCluster] = None) -> bool:
         # more advanced setup:

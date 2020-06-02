@@ -44,7 +44,7 @@ from .config import (SETTINGS_KEY_DOCKER_ENDPOINT,
                      SETTINGS_KEY_DESTROY_HOOK,
                      SETTINGS_KEY_K3D_IMAGE,
                      SETTINGS_KEY_K3S_ARGS)
-from .docker import is_valid_docker_name
+from .docker import is_valid_docker_name, is_valid_docker_host
 from .utils import parse_registry, RegistryInvalidError
 from .utils_ui import (SettingsPage,
                        show_error_dialog,
@@ -318,6 +318,15 @@ class GeneralSettingsPage(SettingsPage):
             startup.create()
         else:
             startup.delete()
+
+    def on_validate(self):
+        dh = self._settings.get_safe_string(SETTINGS_KEY_DOCKER_ENDPOINT)
+        if not is_valid_docker_host(dh):
+            raise PreferencesError(SETTINGS_KEY_DOCKER_ENDPOINT,
+                                   f"'<tt>{dh}</tt>' is not a valid Docker URL. Please verify that\n\n"
+                                   "1) Docker is installed and running\n"
+                                   f"3) '<tt>{dh}</tt>' exists and is accessible\n"
+                                   "3) the Docker URL in the <b><i>Preferences</i></b> is correct.")
 
 
 ###############################################################################
