@@ -366,8 +366,7 @@ class GeneralSettingsPage(SettingsPage):
                     self.cluster.open_dashboard()
                 else:
                     show_warning_dialog(msg="No web service available",
-                                        explanation="\n"
-                                                    f"There is no Dashboard or web service listening at\n\n"
+                                        explanation=f"There is no Dashboard or web service listening at\n\n"
                                                     f"<i><tt>{self.cluster.dashboard_url}</tt></i>\n\n"
                                                     "This usually means that\n\n"
                                                     "a) the Dashboard was not installed\n"
