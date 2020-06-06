@@ -163,7 +163,7 @@ class K3dController(GObject.GObject):
         """
         Returns the global Kubeconfig file where all the individual Kubeconfigs will be merged
         """
-        return os.path.expandvars(self._settings.get_string("kubeconfig").strip("\'").strip("\""))
+        return os.path.expandvars(self._settings.get_safe_string("kubeconfig"))
 
     def check_local_registry(self):
         """

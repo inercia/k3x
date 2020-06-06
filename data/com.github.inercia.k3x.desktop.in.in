@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=k3x
 Comment=k3x is a graphical user interface for k3d, making it trivial to have your own local Kubernetes cluster(s)
-Exec=@APP_ID@
+Exec=k3x
 Terminal=false
 Type=Application
 Categories=System;
