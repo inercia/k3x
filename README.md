@@ -48,8 +48,8 @@ You can install `k3x` in **two different ways**:
 
 * **Installing from the [Flathub](https://flathub.org)**
 
-k3x is available in the Flathub [here](https://flathub.org/apps/details/com.github.inercia.k3x)
-(the flatpack manifest is in [this repo](https://github.com/flathub/com.github.inercia.k3x)).
+  k3x is [available in the Flathub](https://flathub.org/apps/details/com.github.inercia.k3x)
+  (built from [this repo](https://github.com/flathub/com.github.inercia.k3x)).
 
 ## Running it
 

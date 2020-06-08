@@ -10,7 +10,7 @@ could not correspond to the real state of the application._
 ![](screenshots/preferences-general.png)
 
 In this pane you can specify:
- 
+
 * the **kubeconfig** file. This file will be fully managed by `k3x`, and
   that mean that **any previous content will be overwritten**. If you are
   using some other tools that write in this file (like some Cloud providers tools
@@ -21,7 +21,7 @@ In this pane you can specify:
   like:
   ```commandline
   $ export KUBECONFIG="$HOME/.kube/config:$HOME/.kube/k3dconfig"
-  ``` 
+  ```
   and add this line to your `~/.bashrc` file (depending on your shell).
 
 * the **Docker URL**. It can be a:
@@ -35,7 +35,7 @@ In this pane you can specify:
   ```
 
 * a checkbox for starting `k3x` automatically on login.
- 
+
 ## Registry
 
 ![](screenshots/preferences-registry.png)
@@ -44,14 +44,14 @@ In this pane you can control the configuration for the local registry.
 
 * the **local registry mode** allows to select one of the two options
   for running a local registry:
-  
+
   * To create a fully functional, **regular local registry**.
     You will be able to `push` to this registry, and images in this registry
     will be usable from the Kubernetes cluster.
   * To create a **_caching-only_ registry**. This registry will be used as a
     pull-through cache that will save all the images downloaded from the
-    Docker Hub, but you will not be able to `push` to this registry. 
-  
+    Docker Hub, but you will not be able to `push` to this registry.
+
 * the **registry name and port** can be used for customizing the hostname
   where the registry will be available, as well as the port where it will
   listen. Regarding the hostname, it is important to note that:
@@ -60,15 +60,17 @@ In this pane you can control the configuration for the local registry.
       from there.
     * your laptop should also be able to resolve this name or you will not
       be able to `push` images to this registry.
-        
+
   So, depending on the Docker daemon you are using:
-  
-    * when using a **local Docker daemon**, a `*.localhost` names is
-      [automatically resolved to `127.0.0.1` in modern Linux distributions](https://tools.ietf.org/html/draft-west-let-localhost-be-localhost-06),
-      so that will automatically work.
+
+    * when using a **local Docker daemon**, `*.localhost` names are
+      automatically resolved to `127.0.0.1` in modern Linux distributions thanks
+      to [NSS-myhostname](http://man7.org/linux/man-pages/man8/nss-myhostname.8.html).
+      This package is shipped in many Linux distributions, but otherwise it’s
+      installable using `sudo apt install libnss-myhostname` or equivalent.
     * when using a **remote Docker daemon**, you should choose a hostname
       that can be resolved in the containers in your Docker daemon as well as
-      in your laptop.  
+      in your laptop.
 
 * the Docker **volume** used for for storing the images in the registry.
 
@@ -114,9 +116,9 @@ The K3s panel provides some options for:
   You can get the list of official K3S images
   [here](https://hub.docker.com/r/rancher/k3s/tags).
 * some optional **K3s server arguments**. You can check the list of
-  configuration arguments in the official 
-  [K3s Server Configuration Reference](https://rancher.com/docs/k3s/latest/en/installation/install-options/server-config/). 
- 
+  configuration arguments in the official
+  [K3s Server Configuration Reference](https://rancher.com/docs/k3s/latest/en/installation/install-options/server-config/).
+
 ## Scripts
 
 ![](screenshots/preferences-scripts.png)
@@ -151,4 +153,3 @@ Some considerations when using your scripts:
 - The script does not have _root_ privileges. If you need to run commands
   as root, we recommend runing them with `sudo` and enabling password-less
   execution for those commands.
-  
