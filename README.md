@@ -16,7 +16,7 @@ making it trivial to have your own local [Kubernetes](https://kubernetes.io/) cl
 k3x is perfect for:
 
 * having a fresh Kubernetes cluster in a couple of seconds.
-* trying new deployments before going in production. 
+* trying new deployments before going in production.
 * learning about Kubernetes.
 
 k3x goals are:
@@ -48,7 +48,8 @@ You can install `k3x` in **two different ways**:
 
 * **Installing from the [Flathub](https://flathub.org)**
 
-  _Comming soon!_
+k3x is available in the Flathub [here](https://flathub.org/apps/details/com.github.inercia.k3x)
+(the flatpack manifest is in [this repo](https://github.com/flathub/com.github.inercia.k3x)).
 
 ## Running it
 
@@ -70,7 +71,7 @@ By clicking in the
 * `New cluster...` you will open the [cluster creation](docs/user-manual-creating-a-new-cluster.md) dialog.
 * `Preferences` will open the [application settings](docs/user-manual-preferences.md) window.
 
-And you could also try master the global keyboard shortcuts for quicly creating/destroying clusters with a keystroke. 
+And you could also try master the global keyboard shortcuts for quicly creating/destroying clusters with a keystroke.
 
 ![](docs/screenshots/keyboard-shortcuts.png)
 
@@ -84,7 +85,7 @@ And you could also try master the global keyboard shortcuts for quicly creating/
 * Then you can run it with:
   ```commandline
   $ make run
-  ``` 
+  ```
 
 ## Documentation
 
@@ -92,6 +93,3 @@ And you could also try master the global keyboard shortcuts for quicly creating/
 * [Creating a new cluster](docs/user-manual-creating-a-new-cluster.md).
 * [Preferences](docs/user-manual-preferences.md).
 * [Frequently asked questions](docs/faq.md) and troubleshooting.
-
-
-
