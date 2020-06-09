@@ -10,22 +10,31 @@
 [![MIT Licence](https://badges.frapsoft.com/os/mit/mit.svg?v=103)](https://opensource.org/licenses/mit-license.php)
 [![](https://img.shields.io/github/downloads/inercia/k3x/total.svg)](https://gitHub.com/inercia/k3x/releases/)
 
-k3x is a graphical user interface for [k3d](https://github.com/rancher/k3d),
+_k3x_ is a graphical user interface for [k3d](https://github.com/rancher/k3d),
 making it trivial to have your own local [Kubernetes](https://kubernetes.io/) cluster(s).
 
-k3x is perfect for:
+_k3x_ is perfect for:
 
 * having a fresh Kubernetes cluster in a couple of seconds.
 * trying new deployments before going in production.
 * learning about Kubernetes.
 
-k3x goals are:
+_k3x_ goals are:
 
 * to create/switch-to/destroy Kubernetes clusters easily.
 * to drive the most important operations with global keyboard shortcuts.
 * to reduce the learning curve of using Kubernetes.
 
-## Pre-requisites
+## Documentation
+
+* Detailed [installation instructions](docs/user-manual-installation.md).
+* [Creating a new cluster](docs/user-manual-creating-a-new-cluster.md).
+* [Preferences](docs/user-manual-preferences.md).
+* [Frequently asked questions](docs/faq.md) and troubleshooting.
+
+## Quick start
+
+### Pre-requisites
 
 * A **Docker** daemon. It can be both a local or a remote one... but things
   are easier with a local one. Follow [these instructions](https://docs.docker.com/engine/install/)
@@ -34,26 +43,25 @@ k3x goals are:
   Most modern linux distros have built-in support, but you can find more details on
   _flatpaks_ in our [installation instructions](docs/user-manual-installation.md#adding-flatpak-support-in-your-os).
 
-## Installation
+### Installing _k3x_
 
-You can install `k3x` in **two different ways**:
+<a href='https://flathub.org/apps/details/com.github.inercia.k3x'><img width='200' alt='Download on Flathub' src='https://flathub.org/assets/badges/flathub-badge-en.svg'/></a>
 
-* **Using the `.flatpak` file provided in [our releases page](https://github.com/inercia/k3x/releases)**.
+The preferred installation method is from the Flathub. _k3x_ is [available in the Flathub](https://flathub.org/apps/details/com.github.inercia.k3x)
+(built from [this repo](https://github.com/flathub/com.github.inercia.k3x)).
 
-  - Install the Flathub repo with:
+You can also use one of the `.flatpak` files provided in [our releases page](https://github.com/inercia/k3x/releases)
+by:
+
+  - installing the Flathub repo with:
     ```commandline
     $ flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     ```
-  - Then follow the [instructions for your distro](docs/user-manual-installation.md#notes-on-some-linux-distributions).
+  - following the [instructions for your distro](docs/user-manual-installation.md#notes-on-some-linux-distributions).
 
-* **Installing from the [Flathub](https://flathub.org)**
+### Running _k3x_
 
-  k3x is [available in the Flathub](https://flathub.org/apps/details/com.github.inercia.k3x)
-  (built from [this repo](https://github.com/flathub/com.github.inercia.k3x)).
-
-## Running it
-
-Once `k3x` is installed it should be available from your _launcher_ (ie, the GNOME Shell, your
+Once _k3x_ is installed it should be available from your _launcher_ (ie, the GNOME Shell, your
 _Applications menu_, etc.). But you can also run it from the command line with:
 
 ```commandline
@@ -62,7 +70,7 @@ $ flatpak run --user com.github.inercia.k3x
 
 _(this will print the application log in your terminal, useful for debugging)_.
 
-Once `k3x` is running you will see a new icon in your _system tray_ that will unroll a menu when clicked:
+Once _k3x_ is running you will see a new icon in your _system tray_ that will unroll a menu when clicked:
 
 ![](docs/screenshots/menu-overview.png)
 
@@ -75,7 +83,7 @@ And you could also try master the global keyboard shortcuts for quicly creating/
 
 ![](docs/screenshots/keyboard-shortcuts.png)
 
-## Developing
+## Contributing to _k3x_
 
 * First, make sure the
   [`flatpak-builder`](https://docs.flatpak.org/en/latest/flatpak-builder.html)
@@ -86,10 +94,3 @@ And you could also try master the global keyboard shortcuts for quicly creating/
   ```commandline
   $ make run
   ```
-
-## Documentation
-
-* [Installation instructions](docs/user-manual-installation.md)
-* [Creating a new cluster](docs/user-manual-creating-a-new-cluster.md).
-* [Preferences](docs/user-manual-preferences.md).
-* [Frequently asked questions](docs/faq.md) and troubleshooting.
