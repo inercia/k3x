@@ -215,7 +215,7 @@ class K3dCluster(GObject.GObject):
         # by default, we add a custom DNS domain with the same name as the cluster
         args += [f"--server-arg=--cluster-domain={self.name}.local"]
         if self.server_args:
-            args += [f"--server-arg={arg}" for arg in self.server_args]
+            args += [f"--server-arg={arg}" for arg in self.server_args if len(arg) > 0]
 
         # append any extra volumes
         for vol_k, vol_v in self.volumes.items():

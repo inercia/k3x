@@ -219,7 +219,8 @@ class ClusterDialog(Gtk.Window):
 
     @property
     def server_args(self) -> str:
-        return self._settings.get_safe_string(SETTINGS_KEY_K3S_ARGS)
+        s = self._settings.get_safe_string(SETTINGS_KEY_K3S_ARGS)
+        return s.split(" ")
 
     @property
     def image(self) -> str:
@@ -366,11 +367,13 @@ class GeneralSettingsPage(SettingsPage):
                     self.cluster.open_dashboard()
                 else:
                     show_warning_dialog(msg="No web service available",
-                                        explanation=f"There is no Dashboard or web service listening at\n\n"
+                                        explanation=f"There is no Dashboard or Ingress listening at\n\n"
                                                     f"<i><tt>{self.cluster.dashboard_url}</tt></i>\n\n"
                                                     "This usually means that\n\n"
-                                                    "a) the Dashboard was not installed\n"
+                                                    "a) no Dashboard has been installed.\n"
                                                     "b) it was installed but it has not started yet.\n\n"
+                                                    "c) there is no Ingress controller running.\n\n"
+                                                    "d) the <i><tt>Ingress</tt></i> resource is incorrect or it uses the wrong controller.\n\n"
                                                     "If you expected the Dashboard to be available, "
                                                     "please wait and try again in a while...")
 
