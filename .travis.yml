@@ -9,6 +9,7 @@ before_install:
   - make ci/setup
 
 script:
+  - make ci/check
   - make ci/build
 
 # generate all the artifacts that will be published by the "deploy"
@@ -36,4 +37,3 @@ deploy:
       secure: mEt1w/QZV5/UTx7KJ3YJk45Gs7tuW28KoVn03o/T/ZhapJeUAG8GNKbq/pxqeCsyl3Q84+/0nmjmUHAI6fT8mV6A6070NP4Hw2j6GbeQkrKGEyabtW9IcnYXeAXMrAC0EoE9Q9jEynu7fjroUSmuklGW+f7sJajMpk1X0Q8sQotL6PT3WYhB3u+uAwpYtRn3kB6zN1/7EFjmQYNIyn8Jy8C6bM93b3n6+S/XD3V0u3zE4iDZ23BwQ3vVm5Ay2jzf+UPi/y7NpFKqekMUPOo96LiiSzeCj48J/BxUv2o3GyTshvzQfi5wKbjxI+8Rk4VR7Qq/RZHa7UNsdNTGtRVmkmIn5+ar+xJ7MsV+nQ9lTpJmpfxyL/u4EBxh8coXoyjdgILVeHK2oT8WQAknC8Yq3yUWpWjsiOdl5CTY5OT8FPF9/9iwlX2wM6N6fjGj6Wo9E+tQ5FU/lXGSPkIsBrKy4lY/edZJNOXS23t9s6KjcpPSwtd3NkmktTKmeo1LsdGHtBMwLtN8SzrmI04sxZzxY6yVr4nsi2CMDAo5u/1S7cGO889VVy0ZjHjnohaHo6K1tACtcoslv6S3yN7m4o3zIq9ni9bbwbVJU7KZ5MKyR98Ge0iGbQfpMlO17kGtShTcTBZQY7K0Ct91OkmQS52YhH+ciJNz5m6kYFyHP1fKKX0=
     file: com.github.inercia.k3x.flatpak
     skip_cleanup: true
-

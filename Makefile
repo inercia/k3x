@@ -84,10 +84,12 @@ FLATHUB_PATCH   = $(PROJECT_ROOT)/build-aux/flathub-diff.patch
 
 
 # pep8 ignores
-PEP8_IGNORE = E402,E501,E722
+PEP8_IGNORE = E402,E501,E722,E127
 
-TAG          ?=
-TAG_LATEST    = $(shell git describe --abbrev=0)
+# some git info
+TAG            ?=
+GIT_TAG_LATEST  = $(shell git describe --abbrev=0)
+GIT_MODIFIED    = $(shell git ls-files -m)
 
 NINJA_TARGET ?=
 
@@ -113,7 +115,8 @@ help: ## Show this help screen
 	@echo ''
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-##############################
+##############################PROJECT_GIT_VERSION      = $(shell git describe --abbrev=0)
+
 # Development
 ##############################
 ##@ Development
@@ -193,6 +196,13 @@ check: pep8 ## Check code style
 pep8:
 	$(Q)find src -name \*.py -exec pycodestyle --ignore=$(PEP8_IGNORE) {} +
 
+# checks that the version in meson.build matches the TAAG (or latest tag)
+check-version:
+	$(Q)[ -n "$(TAG)" ] || { printf "$(CYN)>>> $(RED)No TAG provided$(END)\n" ; exit 1 ; }
+	$(Q)tag=`echo $(TAG) | tr -d "v"` ; \
+	    grep -q "$$tag" "meson.build" || { printf "$(CYN)>>> $(RED)$$tag does not match the 'version' in 'meson.build'. Please update that file.$(END)\n" ; exit 1 ; }
+	@printf "$(CYN)>>> $(GRN)Version in meson.build looks fine.$(END)\n"
+
 ##############################
 # Packaging
 ##############################
@@ -227,13 +237,24 @@ build-aux/flatpak-pip-generator:
 ##############################
 
 release:  ## Adds a new TAG and pushes it to the origin for forcing a new release
-	$(Q)[ -n "$(TAG)" ] || { printf "$(CYN)>>> $(RED)No TAG provided$(END)\n" ; exit 1 ; }
-	@printf "$(CYN)>>> $(GRN)Adding TAG=$(TAG$)$(END)\n"
+	$(Q)[ -n "$(TAG)" ] || { printf "$(CYN)>>> $(RED)No TAG provided. Re-run with something like 'make release TAG=v0.0.0'$(END)\n" ; exit 1 ; }
+
+	@printf "$(CYN)>>> $(GRN)Creating new release with TAG=$(TAG)$(END)\n"
+
+	$(Q)[ -z "$(GIT_MODIFIED)" ] || { printf "$(CYN)>>> $(RED)Some modified files detected. Please commit your changes before creating a new release.$(END)\n" ; exit 1 ; }
 	$(Q)git co master
+
+	$(Q)git tag | grep -v -q $(TAG) || { printf "$(CYN)>>> $(RED)Version $(TAG) already found in the list of previous tags (last tag=$(GIT_TAG_LATEST)).$(END)\n" ; exit 1 ; }
+	$(Q)make check-version
+
+	@printf "$(CYN)>>> $(GRN)Tag $(TAG) looks fine.$(END)\n"
+
+	@printf "$(CYN)>>> $(GRN)Adding new TAG=$(TAG$)$(END)\n"
 	$(Q)git tag -d $(TAG) 2>/dev/null || /bin/true
 	$(Q)git tag -a $(TAG) -m "New version $(TAG)" || { printf "$(CYN)>>> $(RED)Failed to add TAG=$(TAG) $(END)\n" ; exit 1 ; }
+
 	@printf "$(CYN)>>> $(GRN)Pushing tags $(TAG$)$(END)\n"
-	$(Q)git push --tags || { printf "$(CYN)>>> $(RED)Failed to push new tag $(TAG) to origin$(END)\n" ; exit 1 ; }
+	$(Q)git push || { printf "$(CYN)>>> $(RED)Failed to push new tag $(TAG) to origin$(END)\n" ; exit 1 ; }
 
 ##############################
 # Flathub
@@ -259,7 +280,7 @@ flathub-update: pypi-dependencies.json  ## Update the contents of the Flatub sub
 
 	@printf "$(CYN)>>> $(GRN)Patching manifest$(END)\n"
 	$(Q)cd $(FLATHUB_DIR) && \
-		cat $(FLATHUB_PATCH) | sed -e 's|@TAG@|$(TAG_LATEST)|g' | patch -p0
+		cat $(FLATHUB_PATCH) | sed -e 's|@TAG@|$(GIT_TAG_LATEST)|g' | patch -p0
 
 ##############################
 # CI
@@ -277,6 +298,8 @@ ci/setup:
 	sudo apt-get -y install python3-pip
 	sudo pip3 install pycodestyle
 
+ci/check: TAG=$(GIT_TAG_LATEST)
+ci/check: check-version check
 
 ci/build: build
 
