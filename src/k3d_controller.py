@@ -138,10 +138,6 @@ class K3dController(GObject.GObject):
 
         new_cluster_name = new_cluster.name if isinstance(new_cluster, K3dCluster) else new_cluster
 
-        if self._active is not None and new_cluster_name == self._active.name:
-            logging.debug(f"[K3D] No need to switch cluster: it is the same, '{new_cluster_name}'")
-            return
-
         if new_cluster_name not in self.clusters:
             logging.info(f"[K3D] Active cluster '{new_cluster_name}' is not known: probably not a K3D cluster")
             if self._active is not None:
@@ -149,14 +145,18 @@ class K3dController(GObject.GObject):
             self._active = None
             return
 
-        logging.info(f"[K3D] Switching to cluster '{new_cluster_name}'")
+        has_changed = (new_cluster_name != self._active)
+
+        logging.info(f"[K3D] Activating cluster '{new_cluster_name}'")
         try:
             kubectl_set_current_context(new_cluster_name, kubeconfig=self.kubeconfig)
         except Exception as e:
-            logging.exception(f"[K3D] When switching to cluster '{new_cluster_name}': {e}")
+            logging.exception(f"[K3D] When activating cluster '{new_cluster_name}': {e}")
         else:
             self._active = self.get_cluster_by_name(new_cluster_name)
-            emit_in_main_thread(self, "change-current-cluster", new_cluster_name)
+
+            if has_changed:
+                emit_in_main_thread(self, "change-current-cluster", new_cluster_name)
 
     @property
     def kubeconfig(self) -> str:
@@ -215,6 +215,7 @@ class K3dController(GObject.GObject):
                 header=f"{name} CREATED",
                 action=("Dashboard", cluster.open_dashboard))
         finally:
+            # if `activate`, use the newly created cluster as the active one
             active_cluster = None
             if activate:
                 active_cluster = cluster

@@ -198,6 +198,7 @@ class K3dvMenu(Gtk.Menu):
 
     def on_new_cluster_cycle(self, *args):
         logging.info(f"[MENU] Creating new cluster with defaults and recycling an old one: {args}")
+        assert running_on_main_thread()
 
         # choose a random cluster to remove
         clusters = self._controller.clusters
@@ -217,7 +218,7 @@ class K3dvMenu(Gtk.Menu):
                     break
 
             if to_activate_name is not None:
-                logging.debug(f"[MENU] Will activate random cluster '{to_activate_name}'")
+                logging.debug(f"[MENU] Activating (random) cluster '{to_activate_name}'")
                 self._controller.active = to_activate_name
 
         # create a new cluster in the background
