@@ -45,32 +45,36 @@ _k3x_ goals are:
 
 ### Installing _k3x_
 
+The preferred installation method is from the Flathub. Just visit the [_k3x_ page at the Flathub](https://flathub.org/apps/details/com.github.inercia.k3x)
+(built from [this repo](https://github.com/flathub/com.github.inercia.k3x)) or click in the following link:
+
 <a href='https://flathub.org/apps/details/com.github.inercia.k3x'><img width='200' alt='Download on Flathub' src='https://flathub.org/assets/badges/flathub-badge-en.svg'/></a>
 
-The preferred installation method is from the Flathub. _k3x_ is [available in the Flathub](https://flathub.org/apps/details/com.github.inercia.k3x)
-(built from [this repo](https://github.com/flathub/com.github.inercia.k3x)).
+From command line, you can install it with
+
+```console
+flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+flatpak install --user flathub com.github.inercia.k3x
+```
 
 You can also use one of the `.flatpak` files provided in [our releases page](https://github.com/inercia/k3x/releases)
-by:
-
-  - installing the Flathub repo with:
-    ```commandline
-    $ flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-    ```
-  - following the [instructions for your distro](docs/user-manual-installation.md#notes-on-some-linux-distributions).
+but you should first take a look at the [instructions for your distro](docs/user-manual-installation.md#notes-on-some-linux-distributions)
+for some peculiarities.
 
 ### Running _k3x_
 
 Once _k3x_ is installed it should be available from your _launcher_ (ie, the GNOME Shell, your
 _Applications menu_, etc.). But you can also run it from the command line with:
 
-```commandline
-$ flatpak run --user com.github.inercia.k3x
+```console
+flatpak run --user com.github.inercia.k3x
 ```
 
-_(this will print the application log in your terminal, useful for debugging)_.
+This also print the application log when started from the terminal, useful for debugging.
+Check out the [troubleshooting guide](docs/faq.md) if something goes wrong.
 
-Once _k3x_ is running you will see a new icon in your _system tray_ that will unroll a menu when clicked:
+Once _k3x_ is running you will see a new icon in your _system tray_ that will unroll
+a menu when clicked:
 
 ![](docs/screenshots/menu-overview.png)
 
@@ -91,6 +95,6 @@ And you could also try master the global keyboard shortcuts for quicly creating/
 * You can _fork_ and _clone_ this repo (if you plan to contribute) or just _download_
   it in some directory in your laptop.
 * Then you can run it with:
-  ```commandline
-  $ make run
+  ```console
+  make run
   ```
