@@ -99,6 +99,14 @@ class DockerController(object):
                     return c
         return None
 
+    def get_container_created(self, container) -> str:
+        """
+        Return the container IP
+
+        The network will be something like 'k3d-k3s-cluster-690'
+        """
+        return container.attrs['Created']
+
     def get_container_ip(self, container, network_name: str) -> str:
         """
         Return the container IP

@@ -23,6 +23,8 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
+import datetime
+from dateutil.parser import parse
 from typing import Dict, Iterator, List
 from typing import Optional, Tuple, Callable
 
@@ -139,6 +141,7 @@ class K3dCluster(GObject.GObject):
         self._docker = docker
         self._settings = settings
         self._kubeconfig = None
+        self._docker_created: Optional[datetime.datetime] = None
         self._docker_server_ip = None
         self._notification = None
         self._destroyed = False
@@ -351,6 +354,23 @@ class K3dCluster(GObject.GObject):
                     logging.debug(f"[K3D] {line}")
                 except StopIteration:
                     break
+
+    @property
+    def docker_created(self) -> Optional[datetime.datetime]:
+        if self._destroyed:
+            return None
+
+        if self._docker_created is None:
+            c = self._docker.get_container_by_name(self.docker_server_name)
+            if c:
+                t = self._docker.get_container_created(c)
+                if t:
+                    try:
+                        self._docker_created = parse(t)
+                    except Exception as e:
+                        logging.error(f"[K3D] could not parse time string {t}: {e}")
+
+        return self._docker_created
 
     @property
     def docker_server_name(self) -> Optional[str]:
