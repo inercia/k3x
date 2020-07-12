@@ -3,3 +3,4 @@ xpybutil
 system_hotkey
 pyyaml
 docker
+python-dateutil

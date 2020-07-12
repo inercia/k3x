@@ -212,9 +212,10 @@ class K3dvMenu(Gtk.Menu):
         # check if we can activate some other random cluster
         if len(clusters) > 1:
             to_activate_name = None
-            for cluster_name in clusters.keys():
-                if current is None or cluster_name != current.name:
-                    to_activate_name = cluster_name
+            for c in sorted(clusters.values(), key=lambda x: x.docker_created):
+                if current is None or c.name != current.name:
+                    to_activate_name = c.name
+                    logging.debug(f"[MENU] Will activate '{to_activate_name}' (created at {c.docker_created})")
                     break
 
             if to_activate_name is not None:
