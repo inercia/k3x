@@ -211,7 +211,7 @@ class K3dController(GObject.GObject):
                                       icon="dialog-error")
         else:
             cluster.show_notification(
-                f"{name} has been successfully created. Server is available at {cluster.dashboard_url}",
+                f"{name} has been successfully created. Dashboard will be available at {cluster.dashboard_url}",
                 header=f"{name} CREATED",
                 action=("Dashboard", cluster.open_dashboard))
         finally:
