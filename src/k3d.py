@@ -39,6 +39,7 @@ from .docker import DockerController
 from .helm import HelmChart, cleanup_for_owner
 from .utils import (call_in_main_thread,
                     find_unused_port_in_range,
+                    parse_or_get_address,
                     find_executable,
                     run_command_stdout)
 from .utils_ui import show_notification
@@ -122,7 +123,7 @@ class K3dCluster(GObject.GObject):
     registry_port: str = None
     registry_volume: str = None
     cache_hub: bool = False
-    api_port: int = None
+    api_server: str = None
     image: str = None
     volumes: Dict[str, str] = {}
     charts: List[HelmChart] = []
@@ -231,9 +232,9 @@ class K3dCluster(GObject.GObject):
             args += [f"--volume={src}:{dst}"]
 
         # use the given API port or find an unused one
-        if not self.api_port:
-            self.api_port = find_unused_port_in_range(*DEFAULT_API_SERVER_PORT_RANGE)
-        args += [f"--api-port={self.api_port}"]
+        self.api_server = parse_or_get_address(self.api_server, *DEFAULT_API_SERVER_PORT_RANGE)
+        logging.info(f"[K3D] Using API address {self.api_server}")
+        args += [f"--api-port={self.api_server}"]
 
         # check if we must use an env variable for the DOCKER_HOST
         docker_host = self._docker.docker_host
@@ -257,9 +258,10 @@ class K3dCluster(GObject.GObject):
                 except StopIteration:
                     break
         except Exception as e:
-            logging.error(f"Could not craete cluster: {e}. Cleaning up...")
+            logging.error(f"Could not create cluster: {e}. Cleaning up...")
             self._cleanup()
-            raise
+            self._destroyed = True
+            raise e
 
         logging.info("[K3D] The cluster has been created")
         self._status = "running"
@@ -295,7 +297,7 @@ class K3dCluster(GObject.GObject):
 
     def _cleanup(self) -> None:
         """
-        Cleanup any remainmg things after destroying a cluster
+        Cleanup any remaining things after destroying a cluster
         """
         logging.debug(f"[K3D] Cleaning up for {self.name}")
         cleanup_for_owner(self.name)
@@ -438,11 +440,9 @@ class K3dCluster(GObject.GObject):
         Show a notification specific for this cluster.
         The notification will be saved and next invocations will show as "updates"
         """
-
         def do_notify():
             self._notification = show_notification(msg=msg, header=header, timeout=timeout, action=action, icon=icon,
                                                    notification=self._notification, threaded=False)
-
         call_in_main_thread(do_notify)
 
     @property

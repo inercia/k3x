@@ -143,6 +143,29 @@ def find_unused_port_in_range(start: int, end: int) -> Optional[int]:
     return None
 
 
+def parse_or_get_address(in_address: Optional[str], start: int, end: int) -> str:
+    """
+    Parse an address, adding a random a port if not provided
+    """
+    address: Optional[str] = None
+    port: Optional[str] = None
+
+    if in_address is not None:
+        components = in_address.split(":")
+        if len(components) == 2:
+            address, port = components
+        else:
+            port = components[0]
+
+    if port is None or len(port) == 0 or port == "0":
+        port = str(find_unused_port_in_range(start, end))
+
+    if address:
+        return f"{address}:{port}"
+    else:
+        return f"{port}"
+
+
 ###############################################################################
 # OS utils
 ###############################################################################

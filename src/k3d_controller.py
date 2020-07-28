@@ -198,7 +198,7 @@ class K3dController(GObject.GObject):
         try:
             cluster = K3dCluster(settings=self._settings, docker=self._docker, **kwargs)
         except Exception as e:
-            show_notification(f"Cluster {name} creation failed: {e}.", header="f{name} ERROR",
+            show_notification(f"Cluster {name} creation FAILED: {e}.", header="f{name} ERROR",
                               icon="dialog-error")
             return None
 
@@ -207,11 +207,12 @@ class K3dController(GObject.GObject):
         try:
             cluster.create()
         except Exception as e:
-            cluster.show_notification(f"Cluster {name} creation failed: {e}.", header="f{name} ERROR",
+            cluster.show_notification(f"Cluster {name} creation FAILED: {e}.",
+                                      header="f{name} ERROR",
                                       icon="dialog-error")
         else:
             cluster.show_notification(
-                f"{name} has been successfully created. Dashboard will be available at {cluster.dashboard_url}",
+                f"{name} has been successfully CREATED. Dashboard will be available at {cluster.dashboard_url}",
                 header=f"{name} CREATED",
                 action=("Dashboard", cluster.open_dashboard))
         finally:

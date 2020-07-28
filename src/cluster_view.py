@@ -252,7 +252,7 @@ class ClusterDialog(Gtk.Window):
                   "registry_volume": self.registry_volume,
                   "cache_hub": self.cache_hub,
                   "image": self.image,
-                  "api_port": self.api_server,
+                  "api_server": self.api_server,
                   "charts": get_charts_for_cluster(self),
                   "server_args": self.server_args,
                   "volumes": {},

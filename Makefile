@@ -84,7 +84,7 @@ FLATHUB_PATCH   = $(PROJECT_ROOT)/build-aux/flathub-diff.patch
 
 
 # pep8 ignores
-PEP8_IGNORE = E402,E501,E722,E127
+PEP8_IGNORE = E402,E501,E722,E127,E501
 
 # some git info
 TAG            ?=
@@ -191,6 +191,10 @@ distclean: ## Clean-up everything
 
 .PHONY: clean
 check: pep8 ## Check code style
+
+.PHONY: format
+format:
+	autopep8 --in-place --max-line-length=120 --ignore=$(PEP8_IGNORE) src/*.py
 
 .PHONY: pep8
 pep8:
