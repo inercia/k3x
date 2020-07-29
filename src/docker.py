@@ -94,9 +94,9 @@ class DockerController(object):
         Return the container with the given name, or None if it could not be found.
         """
         if self._client is not None:
-            for c in self._client.containers.list():
-                if c.name == name:
-                    return c
+            containers = self._client.containers.list(filters={"name": name})
+            if len(containers) > 0:
+                return containers[0]
         return None
 
     def get_container_created(self, container) -> str:
