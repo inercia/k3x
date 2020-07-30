@@ -82,7 +82,7 @@ class Keybindings(object):
 
         # see https://github.com/timeyyy/system_hotkey
         from system_hotkey import SystemHotkey
-        self._keybinder = SystemHotkey()
+        self._keybinder = SystemHotkey(check_queue_interval=0.01)
         self.rebind_all()
 
     def rebind_all(self):
