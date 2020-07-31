@@ -144,7 +144,6 @@ class K3dCluster(GObject.GObject):
         self._kubeconfig = None
         self._docker_created: Optional[datetime.datetime] = None
         self._docker_server_ip = None
-        self._notification = None
         self._destroyed = False
         self._status = kwargs.pop("status", "running")
         self.__dict__.update(kwargs)
@@ -432,18 +431,6 @@ class K3dCluster(GObject.GObject):
             webbrowser.open(u)
         else:
             logging.warning(f"[K3D] No URL to open")
-
-    def show_notification(self, msg, header: str = None, icon: str = None,
-                          timeout: Optional[int] = None,
-                          action: Optional[Tuple[str, Callable]] = None):
-        """
-        Show a notification specific for this cluster.
-        The notification will be saved and next invocations will show as "updates"
-        """
-        def do_notify():
-            self._notification = show_notification(msg=msg, header=header, timeout=timeout, action=action, icon=icon,
-                                                   notification=self._notification, threaded=False)
-        call_in_main_thread(do_notify)
 
     @property
     def script_environment(self) -> Dict[str, str]:

@@ -72,7 +72,8 @@ class DockerController(object):
         except Exception as e:
             show_notification(f"Could not connect to Docker at\n{dh}:\n{e}",
                               header="Could not connect to Docker daemon",
-                              icon="dialog-error")
+                              icon="dialog-error",
+                              is_error=True)
             self._client = None
 
     @property

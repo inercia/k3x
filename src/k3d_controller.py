@@ -114,7 +114,7 @@ class K3dController(GObject.GObject):
                 except Exception as e:
                     logging.exception(f"[K3D] PARSER ERROR !!!! Could not parse {line}: {e}")
                     show_notification(f"Could not parse {line}: {e}", header="f{name} INTERNAL ERROR",
-                                      icon="dialog-error")
+                                      icon="dialog-error", is_error=True)
 
         return cs
 
@@ -198,20 +198,20 @@ class K3dController(GObject.GObject):
         try:
             cluster = K3dCluster(settings=self._settings, docker=self._docker, **kwargs)
         except Exception as e:
-            show_notification(f"Cluster {name} creation FAILED: {e}.", header="f{name} ERROR",
-                              icon="dialog-error")
+            show_notification(f"Cluster {name} creation FAILED: {e}.",
+                              header=f"{name} creation FAILED",
+                              icon="dialog-error", is_error=True)
             return None
 
-        cluster.show_notification(f"{cluster.name} is being created in the background",
-                                  header=f"{cluster.name} CREATING...")
+        show_notification(f"{cluster.name} is being created in the background", header=f"{cluster.name} CREATING...")
         try:
             cluster.create()
         except Exception as e:
-            cluster.show_notification(f"Cluster {name} creation FAILED: {e}.",
-                                      header="f{name} ERROR",
-                                      icon="dialog-error")
+            show_notification(f"Cluster {name} creation FAILED: {e}.",
+                              header=f"{name} creation FAILED",
+                              icon="dialog-error", is_error=True)
         else:
-            cluster.show_notification(
+            show_notification(
                 f"{name} has been successfully CREATED. Dashboard will be available at {cluster.dashboard_url}",
                 header=f"{name} CREATED",
                 action=("Dashboard", cluster.open_dashboard))
@@ -224,15 +224,15 @@ class K3dController(GObject.GObject):
             self.refresh(active_cluster=active_cluster)
 
         if post_create_hook:
-            cluster.show_notification(f"Running post-creation script '{post_create_hook}' in the background.",
-                                      header=f"Running post-create script")
+            show_notification(f"Running post-creation script '{post_create_hook}' in the background.",
+                              header=f"Running post-create script")
             try:
                 env = cluster.script_environment
                 env[f"{APP_ENV_PREFIX}_ACTION"] = "create"
                 run_hook_script(post_create_hook, env=env)
             except ScriptError as e:
                 show_notification(f"Cluster {name} post-creation script failed: {e}.",
-                                  header=f"Script error", icon="dialog-error")
+                                  header=f"Script error", icon="dialog-error", is_error=True)
                 logging.exception(f"Cluster {name} post-creation script '{post_create_hook}' failed: {e}.")
 
         return cluster
@@ -249,29 +249,29 @@ class K3dController(GObject.GObject):
 
         post_destroy_hook = kwargs.pop("post_destroy_hook", None)
 
-        cluster.show_notification(f"{cluster.name} is being destroyed in the background",
-                                  header=f"{cluster.name} DESTROYING...")
+        show_notification(f"{cluster.name} is being destroyed in the background",
+                          header=f"{cluster.name} DESTROYING...")
         if cluster:
             try:
                 cluster.destroy()
             except Exception as e:
-                cluster.show_notification(f"Cluster {name} destruction failed: {e}.",
-                                          header=f"{name} ERROR", icon="dialog-error")
+                show_notification(f"Cluster {name} destruction FAILED: {e}.",
+                                  header=f"{name} ERROR", icon="dialog-error", is_error=True)
             else:
-                cluster.show_notification(f"{name} has been destroyed.", header=f"{name} DESTROYED")
+                show_notification(f"{name} has been destroyed.", header=f"{name} DESTROYED")
             finally:
                 self.refresh()
 
             if post_destroy_hook:
-                cluster.show_notification(f"Running post-destruction script '{post_destroy_hook}' in the background.",
-                                          header=f"Running post-destroy script")
+                show_notification(f"Running post-destruction script '{post_destroy_hook}' in the background.",
+                                  header=f"Running post-destroy script")
                 try:
                     env = cluster.script_environment
                     env[f"{APP_ENV_PREFIX}_ACTION"] = "destroy"
                     run_hook_script(post_destroy_hook, env=env)
                 except ScriptError as e:
-                    cluster.show_notification(f"Cluster {name} post-destruction script failed: {e}.",
-                                              header=f"Script error", icon="dialog-error")
+                    show_notification(f"Cluster {name} post-destruction script failed: {e}.",
+                                      header=f"Script error", icon="dialog-error", is_error=True)
                     logging.exception(f"Cluster {name} post-creation script '{post_destroy_hook}' failed: {e}.")
 
     def refresh(self, initial=False, active_cluster: Optional[K3dCluster] = None) -> bool:

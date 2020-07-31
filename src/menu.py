@@ -235,8 +235,8 @@ class K3dvMenu(Gtk.Menu):
         active_cluster = self._controller.active
         try:
             url = active_cluster.dashboard_url
-            active_cluster.show_notification(f"Opening dashboard for {active_cluster} at {url}.",
-                                             header=f"Opening dashboard for {active_cluster}")
+            show_notification(f"Opening dashboard for {active_cluster} at {url}.",
+                              header=f"Opening dashboard for {active_cluster}")
             active_cluster.open_dashboard()
         except K3dError as e:
             show_error_dialog(f"Dashboard error",
@@ -276,11 +276,9 @@ class K3dvMenu(Gtk.Menu):
         if cluster_name is not None:
             assert running_on_main_thread()
             assert self._controller.active is not None
-            self._controller.active.show_notification(f"{cluster_name} is the new active cluster.",
-                                                      header=f"{cluster_name} ACTIVE")
+            show_notification(f"{cluster_name} is the new active cluster.", header=f"{cluster_name} ACTIVE")
         else:
-            show_notification(f"No cluster is currently active.",
-                              header=f"No cluster active")
+            show_notification(f"No cluster is currently active.", header=f"No cluster active")
 
     def on_quit_clicked(self, *args):
         """

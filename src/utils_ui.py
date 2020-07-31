@@ -34,6 +34,11 @@ from .config import ApplicationSettings
 from .utils import call_in_main_thread, running_on_main_thread
 
 
+# default notification timeout (could be ignored by the server)
+NOTIFICATION_TIMEOUT = 4000
+NOTIFICATION_ERROR_TIMEOUT = 7000
+
+
 ###############################################################################
 # messages and notyfications
 ###############################################################################
@@ -42,7 +47,7 @@ def show_notification(msg, header: str = None, icon: str = None,
                       timeout: Optional[int] = None,
                       action: Optional[Tuple[str, Callable]] = None,
                       threaded: bool = True,
-                      notification=None):
+                      is_error: bool = False):
     """
     Show a desktop notification
     """
@@ -56,33 +61,32 @@ def show_notification(msg, header: str = None, icon: str = None,
     if not icon:
         icon_filename = ApplicationSettings.get_app_icon()
 
-    logging.info(msg)
+    if is_error:
+        t = timeout if timeout is not None else NOTIFICATION_ERROR_TIMEOUT
+        logging.error(msg)
+    else:
+        t = timeout if timeout is not None else NOTIFICATION_TIMEOUT
+        logging.debug(msg)
 
-    def do_notify(n=None):
+    def do_notify():
         assert running_on_main_thread()
 
-        # send the notification from the main thread
-        if n is None:
-            n = notify.Notification.new(header, msg, icon)
-            n.set_app_name(APP_TITLE)
+        n = notify.Notification.new(header, msg, icon)
+        n.set_app_name(APP_TITLE)
 
-            if icon_filename:
-                pixbuf = GdkPixbuf.Pixbuf.new_from_file(icon_filename)
-                n.set_icon_from_pixbuf(pixbuf)
+        if icon_filename is not None:
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file(icon_filename)
+            n.set_icon_from_pixbuf(pixbuf)
 
-            if timeout:
-                # Note that the timeout may be ignored by the server.
-                n.set_timeout(timeout)
+        # Note that the timeout may be ignored by the server.
+        n.set_timeout(t)
 
-            if action:
-                action_str, action_callback = action
-                r = random.randrange(0, 10000)
-                n.add_action(f"{r}-{APP_TITLE}-id", action_str, action_callback, None)
+        if action is not None:
+            action_str, action_callback = action
+            r = random.randrange(0, 10000)
+            n.add_action(f"{r}-{APP_TITLE}-id", action_str, action_callback, None)
 
-            n.show()
-        else:
-            logging.debug("[UI] Updating notification")
-            n.update(header, msg, icon)
+        n.show()
 
         if not threaded:  # important: do not return anything if invoked with `call_in_main_thread`
             return n
@@ -91,7 +95,7 @@ def show_notification(msg, header: str = None, icon: str = None,
         call_in_main_thread(do_notify)
         return None
     else:
-        return do_notify(notification)
+        return do_notify()
 
 
 def show_error_dialog(msg: str, explanation: str, icon: str = "dialog-error",
