@@ -126,7 +126,6 @@ class PreferencesDialog(Gtk.Window):
         self.set_position(Gtk.WindowPosition.CENTER)
 
         self._settings = ApplicationSettings(APP_ID)
-
         self._docker = docker
 
         self.view = PreferencesPanedView(settings=self._settings, docker=self._docker)
@@ -156,10 +155,6 @@ class PreferencesDialog(Gtk.Window):
         apply_button.connect("clicked", self.on_apply_clicked)
         apply_button.get_style_context().add_class(Gtk.STYLE_CLASS_SUGGESTED_ACTION)
         self.header.pack_end(apply_button)
-
-    def show_all(self):
-        super(PreferencesDialog, self).show_all()
-        self._settings.delay()
 
     def on_apply_clicked(self, *args):
         """

@@ -66,11 +66,6 @@ class ClusterDialog(Gtk.Window):
         self.set_position(Gtk.WindowPosition.CENTER)
 
         self._settings = ApplicationSettings(APP_ID)
-        # Changes the Settings object into ‘delay-apply’ mode. In this mode,
-        # changes to self are not immediately propagated to the backend, but kept
-        # locally until Settings.apply() is called.
-        # https://lazka.github.io/pgi-docs/Gio-2.0/classes/Settings.html#Gio.Settings.delay
-        self._settings.delay()
 
         self.cluster = cluster
         self._controller = controller

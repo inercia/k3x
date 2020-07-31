@@ -118,12 +118,28 @@ class ApplicationSettings(object):
     The settings class
     """
 
-    def __init__(self, schema):
+    def __init__(self, schema, delay=True):
         self._settings = Gio.Settings.new(schema)
+        if delay:
+            # Changes the Settings object into ‘delay-apply’ mode. In this mode,
+            # changes to self are not immediately propagated to the backend, but kept
+            # locally until Settings.apply() is called.
+            # https://lazka.github.io/pgi-docs/Gio-2.0/classes/Settings.html#Gio.Settings.delay
+            self._settings.delay()
 
     def __getattr__(self, name):
         method = getattr(self._settings, name)
         return method
+
+    def apply(self) -> None:
+        logging.debug(f"[SETTINGS] Applying changes in settings")
+        self._settings.apply()
+        self._settings.sync()
+
+    def revert(self) -> None:
+        logging.debug(f"[SETTINGS] Reverting changes in settings")
+        self._settings.revert()
+        self._settings.sync()
 
     def get_safe_string(self, key: str) -> str:
         """
@@ -192,7 +208,7 @@ class ApplicationSettings(object):
             if icon:
                 path = icon.get_filename()
             else:
-                logging.info(f"FATAL: icon file not found for {APP_ICON_NAME}")
+                logging.error(f"[SETTINGS] icon file not found for {APP_ICON_NAME}")
 
         return path
 
@@ -222,7 +238,7 @@ class ApplicationSettings(object):
             if os.path.exists(dst):
                 os.remove(dst)
 
-            logging.info(f"Copying icon file from {path} to {dst}")
+            logging.debug(f"[SETTINGS] Copying icon file from {path} to {dst}")
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             copyfile(path, dst)
 
@@ -273,3 +289,7 @@ DEFAULT_PREFS_HEIGHT = 450
 # cluster view window size
 DEFAULT_CLUSTER_VIEW_WIDTH = 550
 DEFAULT_CLUSTER_VIEW_HEIGHT = 450
+
+# default notification timeout (could be ignored by the server)
+DEFAULT_NOTIFICATION_TIMEOUT = 4000
+DEFAULT_NOTIFICATION_ERROR_TIMEOUT = 7000

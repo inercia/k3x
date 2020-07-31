@@ -29,14 +29,9 @@ from typing import Optional, Tuple, Callable
 
 from gi.repository import GdkPixbuf, Granite, Gtk, Notify as notify
 
-from .config import APP_TITLE
+from .config import APP_TITLE, DEFAULT_NOTIFICATION_TIMEOUT, DEFAULT_NOTIFICATION_ERROR_TIMEOUT
 from .config import ApplicationSettings
 from .utils import call_in_main_thread, running_on_main_thread
-
-
-# default notification timeout (could be ignored by the server)
-NOTIFICATION_TIMEOUT = 4000
-NOTIFICATION_ERROR_TIMEOUT = 7000
 
 
 ###############################################################################
@@ -62,10 +57,10 @@ def show_notification(msg, header: str = None, icon: str = None,
         icon_filename = ApplicationSettings.get_app_icon()
 
     if is_error:
-        t = timeout if timeout is not None else NOTIFICATION_ERROR_TIMEOUT
+        t = timeout if timeout is not None else DEFAULT_NOTIFICATION_ERROR_TIMEOUT
         logging.error(msg)
     else:
-        t = timeout if timeout is not None else NOTIFICATION_TIMEOUT
+        t = timeout if timeout is not None else DEFAULT_NOTIFICATION_TIMEOUT
         logging.debug(msg)
 
     def do_notify():
