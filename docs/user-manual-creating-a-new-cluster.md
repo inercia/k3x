@@ -38,6 +38,14 @@ The network panel provides some configuration for:
   bind to some specific address or port. When using the default `:0` value,
   a random, unused port will be found automatically before creating the cluster.
   We recommend leaving this field with the default value.
+  
+  Some examples:
+  - _empty_/`0`/`:0`: it will find a free port.
+  - `192.168.1.16:0`: it will find a free port and bind to `192.168.1.16`. This can be
+  necessary for exposing the API server to other machines in that network.
+  - `[eth0]:0`: it will find a free port and bind to the IP address of
+  the `eth0` interface. Note well: that interface could change IP address
+  without notice, leaving the API server unreachable. 
 
 ## Advanced settings
 

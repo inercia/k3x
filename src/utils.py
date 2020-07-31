@@ -53,6 +53,12 @@ class RegistryInvalidError(Exception):
     pass
 
 
+class IPDeviceError(Exception):
+    """
+    An error happened when trying to gte the IP address of a device
+    """
+    pass
+
 ###############################################################################
 # subprocesses
 ###############################################################################
@@ -118,6 +124,22 @@ def running_on_main_thread() -> bool:
 # network utils
 ###############################################################################
 
+def get_iface_ip(ifname):
+    """
+    Get the IOP address for an interface
+    """
+    import socket
+    import fcntl
+    import struct
+
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        t = struct.pack('256s', str.encode(ifname[:15]))
+        # SIOCGIFADDR = 0x8915
+        return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, t)[20:24])
+    except Exception as e:
+        raise IPDeviceError(f"when trying to get the IP address for device '{ifname}': {e}")
+
 
 def is_port_in_use(port: int) -> bool:
     """
@@ -161,6 +183,10 @@ def parse_or_get_address(in_address: Optional[str], start: int, end: int) -> str
         port = str(find_unused_port_in_range(start, end))
 
     if address:
+        # if the IP address is like "[eth0]" then it is really a device name.
+        if address.startswith("[") and address.endswith("]"):
+            address = get_iface_ip(address[1:-1])
+
         return f"{address}:{port}"
     else:
         return f"{port}"
