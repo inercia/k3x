@@ -128,7 +128,7 @@ def show_warning_dialog(msg: str, explanation: str):
 ###############################################################################
 
 
-def _link_gtk_entry_to_settings(settings, entry: Gtk.Entry, settings_id: str):
+def _link_gtk_entry_to_settings(settings: ApplicationSettings, entry: Gtk.Entry, settings_id: str):
     """
     Link a Gtk.Entry to a GSettings ID, so any change in one of
     them will be reflected in the other one.
@@ -145,7 +145,7 @@ def _link_gtk_entry_to_settings(settings, entry: Gtk.Entry, settings_id: str):
                   lambda e: settings.set_string(settings_id, str(entry.get_text())))
 
 
-def _link_gtk_switch_to_settings(settings, switch: Gtk.Switch, settings_id: str):
+def _link_gtk_switch_to_settings(settings: ApplicationSettings, switch: Gtk.Switch, settings_id: str):
     """
     Link a Gtk.Switch to a GSettings ID, so any change in one of
     them will be reflected in the other one.
@@ -162,7 +162,7 @@ def _link_gtk_switch_to_settings(settings, switch: Gtk.Switch, settings_id: str)
                    lambda _sw, _state: settings.set_boolean(settings_id, _state))
 
 
-def _link_gtk_spinbutton_to_settings(settings, spin: Gtk.SpinButton, settings_id: str):
+def _link_gtk_spinbutton_to_settings(settings: ApplicationSettings, spin: Gtk.SpinButton, settings_id: str):
     """
     Link a Gtk.SpinButton to a GSettings ID, so any change in one of
     them will be reflected in the other one.
@@ -179,7 +179,7 @@ def _link_gtk_spinbutton_to_settings(settings, spin: Gtk.SpinButton, settings_id
                  lambda e: settings.set_int(settings_id, spin.get_value()))
 
 
-def _link_gtk_combobox_to_settings(settings, combo: Gtk.ComboBox, settings_id: str):
+def _link_gtk_combobox_to_settings(settings: ApplicationSettings, combo: Gtk.ComboBox, settings_id: str):
     def combo_changed(*args):
         tree_iter = combo.get_active_iter()
         if tree_iter is not None:
@@ -212,7 +212,7 @@ def _link_gtk_combobox_to_settings(settings, combo: Gtk.ComboBox, settings_id: s
     combo.connect("changed", combo_changed)
 
 
-def link_widget_to_settings(settings, widget: Gtk.Widget, settings_id: str):
+def link_widget_to_settings(settings: ApplicationSettings, widget: Gtk.Widget, settings_id: str):
     """
     Link a Gtk.SpinButton to a GSettings ID, so any change in one of
     them will be reflected in the other one.
@@ -242,7 +242,7 @@ class SettingsPage(Granite.SimpleSettingsPage):
     # settings that will be reset when calling set_defaults()
     _managed_settings = []
 
-    def __init__(self, settings, **kwargs):
+    def __init__(self, settings: ApplicationSettings, **kwargs):
         self._settings = settings
         super().__init__(**kwargs)
 

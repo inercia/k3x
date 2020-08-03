@@ -85,7 +85,11 @@ APP_ARTISTS_CREDITS = [
 # settings keys
 ###############################################################################
 
+# note: make sure these keys exist in the data/*.schema.xml
+
 SETTINGS_KEY_START_ON_LOGIN = "start-on-login"
+
+SETTINGS_KEY_DEBUG_LOGS = "debug-logs"
 
 # settings key for the currently preallocated cluster
 SETTINGS_KEY_PREALLOC_CLUSTER = "preallocated"
@@ -125,6 +129,7 @@ class ApplicationSettings(object):
             # changes to self are not immediately propagated to the backend, but kept
             # locally until Settings.apply() is called.
             # https://lazka.github.io/pgi-docs/Gio-2.0/classes/Settings.html#Gio.Settings.delay
+            logging.debug("Creating settings in delayed mode...")
             self._settings.delay()
 
     def __getattr__(self, name):

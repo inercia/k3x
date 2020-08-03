@@ -35,6 +35,7 @@ from .config import (DEFAULT_AUTOSTART_ENTRY_FILE,
                      DEFAULT_PREFS_WIDTH,
                      DEFAULT_PREFS_HEIGHT)
 from .config import (SETTINGS_KEY_DOCKER_ENDPOINT,
+                     SETTINGS_KEY_DEBUG_LOGS,
                      SETTINGS_KEY_KUBECONFIG,
                      SETTINGS_KEY_START_ON_LOGIN,
                      SETTINGS_KEY_REG_ADDRESS,
@@ -45,7 +46,7 @@ from .config import (SETTINGS_KEY_DOCKER_ENDPOINT,
                      SETTINGS_KEY_K3D_IMAGE,
                      SETTINGS_KEY_K3S_ARGS)
 from .docker import is_valid_docker_name, is_valid_docker_host
-from .utils import parse_registry, RegistryInvalidError
+from .utils import parse_registry, RegistryInvalidError, set_log_level
 from .utils_ui import (SettingsPage,
                        show_error_dialog,
                        show_warning_dialog)
@@ -208,7 +209,7 @@ class PreferencesPanedView(Gtk.Paned):
     Panel for preferences
     """
 
-    def __init__(self, settings, docker):
+    def __init__(self, settings: ApplicationSettings, docker):
         super().__init__()
         self.set_halign(Gtk.Align.FILL)
         self.set_valign(Gtk.Align.FILL)
@@ -306,6 +307,13 @@ class GeneralSettingsPage(SettingsPage):
             f"When enabled, {APP_TITLE} is started on login")
         self.append_labeled_entry("Start on login:", self.start_login_checkbutton, SETTINGS_KEY_START_ON_LOGIN)
 
+        # Debug logs
+        self.debug_checkbutton = Gtk.Switch()
+        self.debug_checkbutton.set_tooltip_text(
+            "When enabled, debug logs will be recorded in the journal "
+            "(you can view them with `journalctl` from a terminal")
+        self.append_labeled_entry("Debug-level logs:", self.debug_checkbutton, SETTINGS_KEY_DEBUG_LOGS)
+
     def on_apply(self):
         start_on_login = self._settings.get_boolean(SETTINGS_KEY_START_ON_LOGIN)
         startup = K3dvStartupEntry()
@@ -313,6 +321,9 @@ class GeneralSettingsPage(SettingsPage):
             startup.create()
         else:
             startup.delete()
+
+        # update the loglevel
+        set_log_level(self._settings)
 
     def on_validate(self):
         dh = self._settings.get_safe_string(SETTINGS_KEY_DOCKER_ENDPOINT)

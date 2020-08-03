@@ -29,6 +29,11 @@
 			<summary>Start on login</summary>
 			<description>Start the application on login</description>
 		</key>
+		<key type="b" name="debug-logs">
+			<default>false</default>
+			<summary>Debug logs</summary>
+			<description>Record logs with debug level</description>
+		</key>
 
 		<!-- ******************************** -->
 		<!-- * Preferences: Hooks -->

@@ -32,7 +32,7 @@ from typing import Iterator, Callable, Optional, Tuple, List, Dict
 
 from gi.repository import GLib, GObject
 
-from .config import DEFAULT_SCRIPTS_TIMEOUT
+from .config import DEFAULT_SCRIPTS_TIMEOUT, SETTINGS_KEY_DEBUG_LOGS
 
 
 ###############################################################################
@@ -58,6 +58,7 @@ class IPDeviceError(Exception):
     An error happened when trying to gte the IP address of a device
     """
     pass
+
 
 ###############################################################################
 # subprocesses
@@ -263,3 +264,17 @@ def parse_registry(registry: str) -> Optional[Tuple[str, int]]:
         raise RegistryInvalidError("no registry port specified")
 
     return registry_name, registry_port
+
+
+###############################################################################
+# logging
+###############################################################################
+
+def set_log_level(settings):
+    dl_enabled = settings.get_boolean(SETTINGS_KEY_DEBUG_LOGS)
+    level = logging.DEBUG if dl_enabled else logging.INFO
+    logging.info(f"Changing loglevel to {level}")
+    logger = logging.getLogger()
+    logger.setLevel(level)
+    for handler in logger.handlers:
+        handler.setLevel(level)

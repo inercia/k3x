@@ -42,6 +42,7 @@ from .docker import DockerController
 from .menu import K3dvMenu
 from .k3d_controller import K3dController
 from .keybindings import Keybindings
+from .utils import set_log_level
 from .utils_ui import show_notification
 
 root = logging.getLogger()
@@ -56,6 +57,10 @@ class Indicator(object):
     def __init__(self, version):
         self._version = version
 
+        logging.debug("[MAIN] Creating settings manager...")
+        self._settings = ApplicationSettings(APP_ID)
+        set_log_level(self._settings)
+
         icon = ApplicationSettings.prepare_icon()
         if not icon:
             raise Exception("no icon found")
@@ -68,9 +73,6 @@ class Indicator(object):
         self._indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
         self._indicator.set_attention_icon("indicator-messages-new")
         # self.indicator.set_label("k3d", "")
-
-        logging.debug("[MAIN] Creating settings manager...")
-        self._settings = ApplicationSettings(APP_ID)
 
         self._notifier = notify.init(APP_ID)
 
