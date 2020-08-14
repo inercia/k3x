@@ -37,11 +37,11 @@
     </ul>
   </description>
   <releases>
-    <release version="0.1" date="2020-04-17">
+    <release version="0.2.10" date="2020-08-14">
       <description>
-        <p>Fist release!</p>
+        <p>v0.2.10</p>
         <ul>
-          <li>Initial release.</li>
+          <li>Bugfixes.</li>
         </ul>
       </description>
     </release>
