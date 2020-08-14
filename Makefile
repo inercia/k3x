@@ -22,6 +22,8 @@ FLATPAK_SDK              = org.gnome.Sdk
 FLATPAK_RUNTIME          = org.gnome.Platform
 FLATPAK_RUNTIME_VERSION  = 3.36
 
+METAINFO_FILE            = data/com.github.inercia.k3x.appdata.xml.in
+
 FLATPAK_BASE_APP         = io.elementary.BaseApp
 FLATPAK_BASE_VERSION     = juno-19.08
 
@@ -204,8 +206,14 @@ pep8:
 check-version:
 	$(Q)[ -n "$(TAG)" ] || { printf "$(CYN)>>> $(RED)No TAG provided$(END)\n" ; exit 1 ; }
 	$(Q)tag=`echo $(TAG) | tr -d "v"` ; \
-	    grep -q "$$tag" "meson.build" || { printf "$(CYN)>>> $(RED)$$tag does not match the 'version' in 'meson.build'. Please update that file.$(END)\n" ; exit 1 ; }
+	grep -q "$$tag" "meson.build" || \
+		{ printf "$(CYN)>>> $(RED)$$tag does not match the 'version' found in 'meson.build'. Please update that file.$(END)\n" ; exit 1 ; }
 	@printf "$(CYN)>>> $(GRN)Version in meson.build looks fine.$(END)\n"
+
+	$(Q)tag=`echo $(TAG) | tr -d "v"` ;  \
+	cat $(METAINFO_FILE) | grep release | grep -v -q $$tag || \
+		{ printf "$(CYN)>>> $(RED)Version $$tag not found in the 'releases' section in $(METAINFO_FILE)).$(END)\n" ; exit 1 ; }
+	@printf "$(CYN)>>> $(GRN)Version in $(METAINFO_FILE) looks fine.$(END)\n"
 
 ##############################
 # Packaging
