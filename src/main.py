@@ -77,10 +77,21 @@ class Indicator(object):
         self._notifier = notify.init(APP_ID)
 
         logging.debug("[MAIN] Creating Docker controller...")
-        self._docker = DockerController(settings=self._settings)
+        try:
+            self._docker = DockerController(settings=self._settings)
+        except Exception as e:
+            show_notification(f"Docker error: {e}. "
+                              f"Check system logs or specify a different Docker endpoint in the Preferences",
+                              header=f"Docker FAILED",
+                              icon="dialog-error", is_error=True)
 
         logging.debug("[MAIN] Creating clusters manager...")
-        self._controller = K3dController(settings=self._settings, docker=self._docker)
+        try:
+            self._controller = K3dController(settings=self._settings, docker=self._docker)
+        except Exception as e:
+            show_notification(f"k3d controller error: {e}",
+                              header=f"k3d controller FAILED",
+                              icon="dialog-error", is_error=True)
 
         logging.debug("[MAIN] Creating menu...")
         self._menu = K3dvMenu(controller=self._controller,
@@ -110,7 +121,12 @@ class Indicator(object):
 
         logging.debug("[MAIN] Creating bingings for keyboard shortcuts...")
         # see the data/*.gschema.xml for the keybindings settings names and defauls
-        self._keybinder = Keybindings(self._settings, self._shortcuts)
+        try:
+            self._keybinder = Keybindings(self._settings, self._shortcuts)
+        except Exception as e:
+            show_notification(f"Could not register keybindings: {e}",
+                              header=f"Keybings registration FAILED",
+                              icon="dialog-error", is_error=True)
 
         # # Get notified before menu is shown, see:
         # # https://bugs.launchpad.net/screenlets/+bug/522152/comments/15
