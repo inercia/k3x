@@ -19,7 +19,7 @@ can safely run the following command for adding the repo if not present:
 
 ```commandline
 $ flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-```  
+```
 
 ## Installing the k3x `.flatpak` file
 
@@ -34,33 +34,33 @@ $ flatpak install --user com.github.inercia.k3x.flatpak
 
 When installing from command line, it will probably ask you about installing some
 additional _runtimes_ if they are not already present (like the _GNOME_ runtime).
-In that case, please accept the installation of all the dependencies. 
+In that case, please accept the installation of all the dependencies.
 
 ### Notes on some Linux distributions...
 
 * **Fedora** _(and probably any other GNOME Shell environment)_.
 
   - Make sure the [Flathub repo has been added](#adding-the-flathub-repository).
-  
+
   - Download the `.flatpak` file, but the installer does not work when double-clicking
     this file. Install the package [as described in the previous section](#installing-the-k3x-flatpak-file).
-     
+
   - You need to install the `gnome-shell-extension-appindicator` RPM (or equivalent
     for your distribution) for showing the `k3x` system tray indicator.
     ```commandline
-    $ yum search gnome-shell-extension-appindicator
+    $ dnf search gnome-shell-extension-appindicator
     Last metadata expiration check: 0:44:07 ago on Sat 25 Apr 2020 05:59:09 AM EDT.
     ======================== Name Exactly Matched: gnome-shell-extension-appindicator ========================
     gnome-shell-extension-appindicator.noarch : AppIndicator/KStatusNotifierItem support for GNOME Shell
     $
-    $ sudo yum install gnome-shell-extension-appindicator
+    $ sudo dnf install gnome-shell-extension-appindicator
     ...
     ```
     After installing this package, make sure it is enabled. In `GNOME Software`,
     under `Addons` > `Shell Extensions` > `Extension settings`, enable the
     `KStatusNotifier/Appindicator Support`, like this:
    ![](screenshots/installation-fedora-shell-extension.png)
-   
+
 * **Ubuntu**, **Elementary OS** and other derivatives.
 
   - Make sure the [Flathub repo has been added](#adding-the-flathub-repository).
@@ -71,9 +71,9 @@ In that case, please accept the installation of all the dependencies.
     downloading the `.flatpak`:
 
     ![](screenshots/installation-flatpak-bundle.gif)
-    
+
     Even though the installer is stuck for a while, the `.flatpak` will be eventually installed.
-    
+
   - After that, it seems to works right out of the box (please [report an issue](https://github.com/inercia/k3x/issues/new/choose) if it doesn't).
 
 * **OpenSUSE** (and KDE environments).
@@ -113,7 +113,7 @@ In that case, please accept the installation of all the dependencies.
   ```commandline
   $ flatpak install --user com.github.inercia.k3x.flatpak
   Required runtime for com.github.inercia.k3x/x86_64/master (runtime/org.gnome.Platform/x86_64/3.34) found in remote flathub
-  Do you want to install it? [Y/n]: 
+  Do you want to install it? [Y/n]:
 
   com.github.inercia.k3x permissions:
       ipc      network     wayland     x11     file access [1]     dbus access [2]
@@ -134,7 +134,7 @@ In that case, please accept the installation of all the dependencies.
   ```
 
   You could also to force the installation of the dependencies with:
-  
+
   ```commandline
   $ flatpak install --user org.gnome.Platform/x86_64/3.34
   ```
