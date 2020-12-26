@@ -124,6 +124,9 @@ help: ## Show this help screen
 ##@ Development
 
 deps: ## Install all the required dependencies for building/running
+	@printf "$(CYN)>>> $(GRN)Checking out submodules...$(END)\n"
+	git submodule init
+	git submodule update
 	@printf "$(CYN)>>> $(GRN)Adding flatpak dependencies (apps, frameworks...)...$(END)\n"
 	flatpak --user remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 	flatpak --user install -y flathub $(FLATPAK_RUNTIME)/x86_64/$(FLATPAK_RUNTIME_VERSION)
