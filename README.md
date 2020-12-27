@@ -94,6 +94,10 @@ And you could also try master the global keyboard shortcuts for quicly creating/
   is available in your machine.
 * You can _fork_ and _clone_ this repo (if you plan to contribute) or just _download_
   it in some directory in your laptop.
+* Install all dependencies with:
+  ```
+  make deps
+  ```
 * Then you can run it with:
   ```console
   make run
