@@ -7,7 +7,6 @@
   <summary>Manager for local Kubernetes clusters with k3d</summary>
   <developer_name>Alvaro Saurin</developer_name>
   <categories>
-    <category>Game</category>
     <category>GTK</category>
   </categories>
   <provides>
